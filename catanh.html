@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bounding Box Tool — Offline (Zoom + Crop)</title>
+  <style>
+    :root{ --bg:#0f172a; --fg:#e5e7eb; --muted:#94a3b8; --accent:#22c55e; --danger:#ef4444; --card:#111827; }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Noto Sans',sans-serif}
+    header{padding:14px 18px;border-bottom:1px solid #1f2937;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+    header h1{font-size:18px;margin:0}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .btn{background:#1f2937;border:1px solid #374151;color:var(--fg);padding:8px 10px;border-radius:10px;cursor:pointer}
+    .btn:hover{filter:brightness(1.12)}
+    .btn.danger{border-color:#7f1d1d;background:#1f2937;color:#fecaca}
+    .btn.accent{border-color:#065f46;background:#083344;color:#bbf7d0}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .field{display:flex;align-items:center;gap:6px}
+    .field label{color:var(--muted);font-size:13px}
+    .wrap{display:grid;grid-template-columns:1fr 360px;gap:16px;min-height:calc(100% - 66px)}
+    @media (max-width: 980px){.wrap{grid-template-columns:1fr}}
+    .stage{padding:12px;overflow:auto}
+    .panel{border-left:1px solid #1f2937;background:var(--card);padding:12px 12px 100px;position:relative}
+    .panel h3{margin:4px 0 10px 0;font-size:16px}
+    #canvas{background:#0b1220;border:1px solid #1f2937;border-radius:12px;display:block;max-width:100%;height:auto;cursor:crosshair}
+    .list{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto;padding-right:4px}
+    .card{border:1px solid #1f2937;background:#0b1220;border-radius:12px;padding:8px}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
+    #coords{margin-top:8px;color:var(--muted);font-size:13px}
+    .footer{position:absolute;left:0;right:0;bottom:0;padding:10px;border-top:1px solid #1f2937;color:var(--muted);font-size:12px}
+    input[type="number"]{width:74px;background:#0b1220;border:1px solid #334155;border-radius:8px;color:var(--fg);padding:6px}
+    input[type="color"]{width:42px;height:32px;border:1px solid #334155;border-radius:8px;background:#0b1220}
+    input[type="range"]{accent-color:#22c55e}
+    .kbd{background:#1f2937;border:1px solid #374151;border-bottom-color:#111827;padding:0 6px;border-radius:6px;color:#cbd5e1}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🖼️ Bounding Box Tool</h1>
+    <div class="toolbar">
+      <input class="btn" type="file" id="upload" accept="image/*" />
+      <button id="downloadJSON" class="btn accent">⬇️ Export JSON</button>
+      <button id="downloadYAML" class="btn accent">⬇️ Export YAML</button>
+      <button id="downloadCrop" class="btn">🖼️ Download Crop (PNG)</button>
+      <button id="copySelected" class="btn">📋 Copy tọa độ (đang chọn)</button>
+      <label class="field"><label>Stroke</label><input id="color" type="color" value="#22c55e" /></label>
+      <label class="field"><label>Width</label><input id="width" type="number" min="1" max="10" value="2" /></label>
+      <button id="undo" class="btn">↶ Undo</button>
+      <button id="clear" class="btn danger">🗑️ Clear</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="stage">
+      <div class="toolbar" style="margin:6px 0 10px 2px">
+        <button id="zoomOut" class="btn">−</button>
+        <input id="zoom" type="range" min="0.1" max="5" value="1" step="0.05" style="width:220px" />
+        <button id="zoomIn" class="btn">+</button>
+        <button id="fit" class="btn">Fit</button>
+        <button id="reset" class="btn">Reset</button>
+        <span style="color:var(--muted);font-size:12px">Zoom chuột tại vị trí con trỏ • Giữ <span class="kbd">Space</span> rồi kéo để pan</span>
+      </div>
+      <canvas id="canvas"></canvas>
+      <div id="coords">Tải ảnh lên để bắt đầu. Kéo để vẽ khung (hiển thị live).</div>
+    </div>
+    <aside class="panel">
+      <h3>Danh sách khung (x1, y1, x2, y2)</h3>
+      <div id="list" class="list" aria-live="polite"></div>
+      <div class="footer">
+        Phím tắt: <span class="kbd">Del</span> xoá mục chọn • <span class="kbd">Ctrl+Z</span> undo • <span class="kbd">Esc</span> huỷ vẽ • <span class="kbd">Space</span> kéo ảnh
+        <div id="meta" style="margin-top:6px"></div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const upload = document.getElementById('upload');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const listEl = document.getElementById('list');
+    const coordsEl = document.getElementById('coords');
+    const metaEl = document.getElementById('meta');
+
+    const btnUndo = document.getElementById('undo');
+    const btnClear = document.getElementById('clear');
+    const btnJSON = document.getElementById('downloadJSON');
+    const btnYAML = document.getElementById('downloadYAML');
+    const btnCrop = document.getElementById('downloadCrop');
+    const btnCopySel = document.getElementById('copySelected');
+    const colorEl = document.getElementById('color');
+    const widthEl = document.getElementById('width');
+
+    const zoomSlider = document.getElementById('zoom');
+    const zoomInBtn = document.getElementById('zoomIn');
+    const zoomOutBtn = document.getElementById('zoomOut');
+    const fitBtn = document.getElementById('fit');
+    const resetBtn = document.getElementById('reset');
+
+    let img = new Image();
+    let imgLoaded = false;
+
+    // View transform (display -> image): img = (disp - offset)/scale
+    let scale = 1, offsetX = 0, offsetY = 0;
+
+    // Boxes (image-space coords)
+    let boxes = []; // {id,x1,y1,x2,y2}
+    let nextId = 1;
+    let selectedId = null;
+
+    // Drawing state
+    let drawing = false;
+    let startIX = 0, startIY = 0; // start point in image-space
+    let currIX = 0, currIY = 0;
+
+    // Panning state
+    let panning = false; let lastDX = 0, lastDY = 0; let spaceHeld = false;
+
+    function fitCanvasToImage(){
+      const maxW = Math.min(window.innerWidth - 420, 1600);
+      const maxH = Math.min(window.innerHeight - 220, 900);
+      canvas.width = Math.max(320, Math.floor(maxW));
+      canvas.height = Math.max(200, Math.floor(maxH));
+      const sx = canvas.width / (img.width || 1);
+      const sy = canvas.height / (img.height || 1);
+      scale = Math.min(1, Math.min(sx, sy));
+      offsetX = (canvas.width - img.width*scale)/2;
+      offsetY = (canvas.height - img.height*scale)/2;
+      updateZoomUI();
+      updateMeta();
+    }
+
+    function updateMeta(){ metaEl.textContent = imgLoaded ? `Ảnh gốc: ${img.width}×${img.height}px • Canvas: ${canvas.width}×${canvas.height}px • scale=${scale.toFixed(3)} • offset=(${Math.round(offsetX)}, ${Math.round(offsetY)})` : ''; }
+
+    function imgToDisp(x, y){ return { x: x*scale + offsetX, y: y*scale + offsetY }; }
+    function dispToImg(x, y){ return { x: (x - offsetX)/scale, y: (y - offsetY)/scale }; }
+
+    function draw(){
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      if(!imgLoaded) return;
+      ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(img, 0, 0);
+      const stroke = colorEl.value;
+      const lineW = Math.max(1, parseInt(widthEl.value||2,10));
+      ctx.lineWidth = lineW;
+      for(const b of boxes){
+        ctx.strokeStyle = (b.id === selectedId) ? '#60a5fa' : stroke;
+        ctx.strokeRect(b.x1, b.y1, (b.x2-b.x1), (b.y2-b.y1));
+      }
+      if(drawing){
+        ctx.setLineDash([6,4]);
+        ctx.strokeStyle = '#f87171';
+        const x = Math.min(startIX, currIX);
+        const y = Math.min(startIY, currIY);
+        const w = Math.abs(currIX - startIX);
+        const h = Math.abs(currIY - startIY);
+        ctx.strokeRect(x, y, w, h);
+        ctx.setLineDash([]);
+      }
+      ctx.setTransform(1,0,0,1,0,0);
+    }
+
+    function updateList(){
+      listEl.innerHTML = '';
+      if(boxes.length === 0){
+        const empty = document.createElement('div'); empty.className = 'card';
+        empty.textContent = 'Chưa có khung nào. Kéo chuột trên ảnh để vẽ.';
+        listEl.appendChild(empty); return;
+      }
+      for(const b of boxes){
+        const card = document.createElement('div'); card.className = 'card';
+        const row1 = document.createElement('div'); row1.className = 'row';
+        const lbl = document.createElement('div');
+        lbl.innerHTML = `<strong>#${b.id}</strong> <span class="mono">x1=${b.x1}, y1=${b.y1}, x2=${b.x2}, y2=${b.y2}</span>`;
+        const actions = document.createElement('div');
+        const btnSel = document.createElement('button'); btnSel.className='btn'; btnSel.textContent = (b.id===selectedId)?'Đã chọn':'Chọn'; btnSel.onclick = ()=>{ selectedId=b.id; draw(); updateList(); };
+        const btnCopy = document.createElement('button'); btnCopy.className='btn'; btnCopy.textContent='Copy'; btnCopy.onclick = ()=> navigator.clipboard.writeText(`x1=${b.x1}; y1=${b.y1}; x2=${b.x2}; y2=${b.y2}`);
+        const btnDel = document.createElement('button'); btnDel.className='btn danger'; btnDel.textContent='Xoá'; btnDel.onclick = ()=>{ boxes = boxes.filter(x=>x.id!==b.id); if(selectedId===b.id) selectedId=null; draw(); updateList(); };
+        actions.append(btnSel, btnCopy, btnDel);
+        row1.append(lbl, actions); card.append(row1);
+        listEl.append(card);
+      }
+    }
+
+    function undo(){ boxes.pop(); selectedId=null; draw(); updateList(); }
+    function clearAll(){ boxes = []; selectedId=null; draw(); updateList(); }
+
+    function exportJSON(){ return JSON.stringify(boxes.map(({id,x1,y1,x2,y2})=>({id,x1,y1,x2,y2})), null, 2); }
+    function exportYAML(){ const lines=['boxes:']; for(const {id,x1,y1,x2,y2} of boxes){ lines.push(`  - id: ${id}`); lines.push(`    x1: ${x1}`); lines.push(`    y1: ${y1}`); lines.push(`    x2: ${x2}`); lines.push(`    y2: ${y2}`);} return lines.join('\n'); }
+    function download(name, content){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type:'text/plain'})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000); }
+
+    function downloadCrop(){ const sel = boxes.find(b=>b.id===selectedId) || boxes[boxes.length-1]; if(!sel){ alert('Chưa có khung nào được chọn.'); return; } const w = Math.max(1, sel.x2 - sel.x1); const h = Math.max(1, sel.y2 - sel.y1); const off = document.createElement('canvas'); off.width = w; off.height = h; const octx = off.getContext('2d'); octx.drawImage(img, sel.x1, sel.y1, w, h, 0, 0, w, h); off.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`crop_${sel.id}_${w}x${h}.png`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }); }
+    function copySelected(){ const sel = boxes.find(b=>b.id===selectedId) || boxes[boxes.length-1]; if(!sel){ alert('Chưa có khung nào được chọn.'); return; } navigator.clipboard.writeText(`x1=${sel.x1}; y1=${sel.y1}; x2=${sel.x2}; y2=${sel.y2}`); }
+
+    upload.addEventListener('change', e=>{ const file = e.target.files && e.target.files[0]; if(!file) return; const fr = new FileReader(); fr.onload = ev => { const src = ev.target.result; const image = new Image(); image.onload = ()=>{ img=image; imgLoaded=true; fitCanvasToImage(); draw(); boxes=[]; nextId=1; selectedId=null; updateList(); coordsEl.textContent='Ảnh đã tải. Kéo chuột để vẽ khung. Dùng bánh xe để zoom.'; }; image.src = src; }; fr.readAsDataURL(file); });
+
+    function onMouseDown(e){ if(!imgLoaded) return; const rect = canvas.getBoundingClientRect(); const dx = e.clientX - rect.left; const dy = e.clientY - rect.top; if(spaceHeld || e.button===1){ panning = true; lastDX = dx; lastDY = dy; canvas.style.cursor='grab'; return; } const {x,y} = dispToImg(dx, dy); const hit = boxes.find(b=> x>=b.x1 && x<=b.x2 && y>=b.y1 && y<=b.y2); if(hit){ selectedId = hit.id; draw(); updateList(); return; } drawing = true; startIX = currIX = Math.round(x); startIY = currIY = Math.round(y); coordsEl.textContent = `Đang vẽ… start=(${startIX}, ${startIY})`; draw(); }
+    function onMouseMove(e){ if(!imgLoaded) return; const rect = canvas.getBoundingClientRect(); const dx = e.clientX - rect.left; const dy = e.clientY - rect.top; if(panning){ offsetX += (dx - lastDX); offsetY += (dy - lastDY); lastDX = dx; lastDY = dy; draw(); updateMeta(); return; } const {x,y} = dispToImg(dx, dy); if(drawing){ currIX = Math.round(x); currIY = Math.round(y); draw(); coordsEl.textContent = `Đang vẽ… x1=${Math.min(startIX,currIX)}, y1=${Math.min(startIY,currIY)}, x2=${Math.max(startIX,currIX)}, y2=${Math.max(startIY,currIY)}`; } else { coordsEl.textContent = `Con trỏ ảnh: (${Math.round(x)}, ${Math.round(y)})`; } }
+    function onMouseUp(e){ if(panning){ panning=false; canvas.style.cursor='crosshair'; return; } if(!imgLoaded || !drawing) return; const x1=Math.min(startIX,currIX), y1=Math.min(startIY,currIY), x2=Math.max(startIX,currIX), y2=Math.max(startIY,currIY); if((x2-x1)<2 || (y2-y1)<2){ drawing=false; draw(); return; } const box={id:nextId++, x1, y1, x2, y2}; boxes.push(box); selectedId=box.id; drawing=false; draw(); updateList(); coordsEl.textContent=`Đã tạo: x1=${x1}, y1=${y1}, x2=${x2}, y2=${y2}`; }
+    function onWheel(e){ if(!imgLoaded) return; e.preventDefault(); const rect=canvas.getBoundingClientRect(); const mx=e.clientX-rect.left, my=e.clientY-rect.top; const pre=dispToImg(mx,my); const delta = Math.sign(e.deltaY); const factor = delta>0 ? 0.9 : 1.1; const newScale = Math.min(5, Math.max(0.1, scale*factor)); const postX = mx - pre.x*newScale; const postY = my - pre.y*newScale; scale = newScale; offsetX = postX; offsetY = postY; zoomSlider.value = String(newScale); draw(); updateMeta(); }
+    function onKeyDown(e){ if(e.code==='Space'){ spaceHeld=true; } if(e.key==='Escape' && drawing){ drawing=false; draw(); coordsEl.textContent='Huỷ vẽ.'; } if(e.key==='Delete' && selectedId!=null){ boxes = boxes.filter(b=>b.id!==selectedId); selectedId=null; draw(); updateList(); } if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ undo(); } }
+    function onKeyUp(e){ if(e.code==='Space'){ spaceHeld=false; } }
+
+    function updateZoomUI(){ zoomSlider.value = String(parseFloat(scale.toFixed(2))); }
+    function setZoomAround(cx, cy, newScale){ const pre = dispToImg(cx, cy); scale = Math.min(5, Math.max(0.1, newScale)); const postX = cx - pre.x*scale; const postY = cy - pre.y*scale; offsetX = postX; offsetY = postY; updateZoomUI(); draw(); updateMeta(); }
+    zoomSlider.addEventListener('input', e=>{ const rect=canvas.getBoundingClientRect(); setZoomAround(rect.width/2, rect.height/2, parseFloat(e.target.value)); });
+    zoomInBtn.onclick = ()=>{ const rect=canvas.getBoundingClientRect(); setZoomAround(rect.width/2, rect.height/2, scale*1.1); };
+    zoomOutBtn.onclick = ()=>{ const rect=canvas.getBoundingClientRect(); setZoomAround(rect.width/2, rect.height/2, scale*0.9); };
+    fitBtn.onclick = ()=>{ if(!imgLoaded) return; fitCanvasToImage(); draw(); };
+    resetBtn.onclick = ()=>{ if(!imgLoaded) return; scale=1; offsetX=(canvas.width-img.width)/2; offsetY=(canvas.height-img.height)/2; updateZoomUI(); draw(); updateMeta(); };
+
+    btnUndo.onclick = undo; btnClear.onclick = clearAll; btnJSON.onclick = ()=> download('boxes.json', exportJSON()); btnYAML.onclick = ()=> download('boxes.yaml', exportYAML()); btnCrop.onclick = downloadCrop; btnCopySel.onclick = copySelected;
+
+    canvas.addEventListener('mousedown', onMouseDown);
+    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mouseup', onMouseUp);
+    canvas.addEventListener('wheel', onWheel, {passive:false});
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+
+    canvas.width = 960; canvas.height = 540; draw();
+    window.addEventListener('resize', ()=>{ if(imgLoaded){ fitCanvasToImage(); draw(); } });
+  </script>
+</body>
+</html>

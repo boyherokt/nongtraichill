@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Thnes — Trang cá nhân</title>
+  <meta name="description" content="Trang cá nhân Vùng Đất Chill" />
+  <meta property="og:title" content="Thnes — Trang cá nhân" />
+  <meta property="og:description" content="🌴 Sống chậm, Chill thôi!" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="media/poster.jpg" />
+
+  <link rel="preload" as="video" href="media/bg.webm" type="video/webm">
+  <link rel="stylesheet" href="profile.css" />
+</head>
+<body>
+
+  <!-- Nút Trang chủ (trong suốt, góc trái trên) → về index của thư mục tổng -->
+  <a id="home-btn" class="home-btn" href="../index.html" aria-label="Trang chủ" title="Trang chủ">⌂</a>
+
+  <!-- CLICK GATE -->
+  <div id="click-gate" class="gate" tabindex="0" role="button" aria-label="Nhấp để xem">
+    <div class="panel">
+      <h2>Nhấp để xem</h2>
+      <p>Hang ổ bí mật, mở ra coi chừng bị cuốn vào vòng xoáy drama với mình hehe. Nhấp/chạm để vào!</p>
+      <span class="hint">Bấm hoặc chạm để tiếp tục</span>
+    </div>
+  </div>
+
+  <!-- Video nền: giữ webm + mp4, playsinline + muted cho mobile -->
+  <video id="bgvid" class="bgvid" autoplay muted loop playsinline preload="metadata" poster="media/poster.jpg">
+    <source src="media/bg.webm" type="video/webm" />
+    <source src="media/bg.mp4" type="video/mp4" />
+  </video>
+
+  <!-- lớp tối + noise -->
+  <div class="overlay"></div>
+  <div class="noise"></div>
+
+  <!-- nền hiệu ứng -->
+  <canvas id="snow" class="fx fx-snow" aria-hidden="true"></canvas>
+
+  <!-- hiệu ứng chuột -->
+  <canvas id="cursorfx" class="fx fx-cursor" aria-hidden="true"></canvas>
+
+  <!-- nội dung -->
+  <main class="wrap">
+    <section class="card" aria-label="Hồ sơ cá nhân">
+      <div class="avatar-wrap hover-anim">
+        <img id="avatar" class="avatar" src="media/avatar.jpg" alt="Avatar" />
+        <img id="avatar-deco" class="avatar-deco" src="media/deco.png" alt="" onerror="this.style.display='none'" />
+        <span class="avatar-ripple" aria-hidden="true"></span>
+      </div>
+
+      <!-- Thêm class fire để kích hoạt hiệu ứng tên cháy -->
+      <h1 class="name fire" id="display-name">
+        Thnes
+        <span class="badge" title="Administrator Vùng Đất Chill">Administrator</span>
+      </h1>
+
+      <p class="bio">Tìm mình tại một trong những nơi bên dưới nhé. Nơi tụ tập mọi ngóc ngách mình hay lảng vảng! Nhấn vô coi, lỡ đâu bắt gặp mình đang làm trò con bò gì đó! 🤡💥</p>
+
+      <!-- Quote ngẫu nhiên -->
+      <p id="quote" class="quote" aria-live="polite"></p>
+
+      <div class="links" id="links">
+        <a class="btn btn-discord" href="https://dsc.gg/vungdatchill" target="_blank" rel="noopener" title="Discord" data-tip="Vào server Vùng Đất Chill!" data-link-type="discord">
+          <span class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M20.317 4.369A19.91 19.91 0 0 0 16.558 3a13.15 13.15 0 0 0-.622 1.287 18.59 18.59 0 0 0-7.872 0A13.2 13.2 0 0 0 7.44 3 19.867 19.867 0 0 0 3.682 4.37C1.862 7.627 1.27 10.79 1.49 13.913A19.938 19.938 0 0 0 7.14 16.2c.45-.617.85-1.272 1.192-1.957a12.8 12.8 0 0 1-1.887-.905c.157-.114.31-.232.457-.355 3.642 1.706 7.582 1.706 11.223 0 .148.123.3.24.457.355-.6.35-1.228.653-1.886.905.343.685.742 1.34 1.193 1.957a19.86 19.86 0 0 0 5.65-2.288c.3-4.093-.52-7.233-2.12-9.845Z"/><circle cx="9.25" cy="11" r="1.5"/><circle cx="14.75" cy="11" r="1.5"/></svg>
+          </span>
+          Discord
+          <span id="discord-stats" class="badge small" title="Online">...</span>
+        </a>
+        <a class="btn btn-tiktok" href="https://tiktok.com/" target="_blank" rel="noopener" title="TikTok" data-tip="Xem clip vui vẻ 😉">
+          <span class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12.75 3h3.09a6.6 6.6 0 0 0 4.41 4.41v3.09a9.76 9.76 0 0 1-4.59-1.25v6.4A6.35 6.35 0 1 1 9 9.4v3.18a2.9 2.9 0 1 0 4.5 2.39V3Z"/></svg>
+          </span>
+          TikTok
+        </a>
+        <a class="btn btn-facebook" href="https://facebook.com/" target="_blank" rel="noopener" title="Facebook" data-tip="Kết nối Facebook">
+          <span class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12a10 10 0 1 0-11.57 9.9v-7h-2.4V12h2.4V9.8c0-2.37 1.41-3.68 3.57-3.68 1.03 0 2.1.18 2.1.18v2.3h-1.18c-1.16 0-1.52.72-1.52 1.45V12h2.59l-.41 2.9h-2.18v7A10 10 0 0 0 22 12Z"/></svg>
+          </span>
+          Facebook
+        </a>
+        <button class="btn btn-gallery" id="open-gallery" type="button" title="Khoảnh khắc" data-tip="Xem gallery ảnh">🖼 Khoảnh khắc</button>
+      </div>
+      <!-- Hint lướt ngang: chỉ hiện mobile -->
+      <div class="links-hint">⇠ Vuốt ⇢</div>
+
+      <footer class="foot">© 2025 Vùng Đất Chill • made by Hugnw</footer>
+    </section>
+  </main>
+
+  <!-- Nhạc nền (Playlist) -->
+  <audio id="bgm" preload="auto" loop></audio>
+  <div id="audio-player" class="audio-player compact" aria-label="Trình phát nhạc">
+    <div class="btns">
+      <button class="audio-btn prev" aria-label="Bài trước" title="Bài trước">⏮</button>
+      <button class="audio-toggle" aria-label="Play/Pause Music" title="Nhạc nền">
+        <span class="eq"><i></i><i></i><i></i></span>
+        <span class="loading" aria-hidden="true"></span>
+        <span class="pp">▶</span>
+      </button>
+      <button class="audio-btn next" aria-label="Bài sau" title="Bài sau">⏭</button>
+      <button class="audio-btn mute" id="btn-mute" aria-label="Tắt bật âm thanh" title="Mute/Unmute">🔇</button>
+    </div>
+    <div id="nowplaying" class="nowplaying" aria-live="polite"></div>
+  </div>
+
+  <!-- Cài đặt nhanh -->
+  <button class="settings-toggle" aria-label="Mở cài đặt" title="Cài đặt">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <path d="M12 8.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Zm8.66 3.1c.05.28.08.57.08.86s-.03.58-.08.86l2.03 1.59a.75.75 0 0 1 .16 1.01l-1.92 3.32a.75.75 0 0 1-.95.32l-2.39-.96a7.5 7.5 0 0 1-1.49.86l-.36 2.55a.75.75 0 0 1-.74.64h-3.84a.75.75 0 0 1-.74-.64l-.36-2.55a7.5 7.5 0 0 1-1.49-.86l-2.39.96a.75.75 0 0 1-.95.32l1.92 3.32Z"/>
+    </svg>
+  </button>
+  <div id="settings" class="settings-panel" role="dialog" aria-label="Cài đặt nhanh" aria-modal="false">
+    <div class="group">
+      <label for="sel-theme">Theme</label>
+      <select id="sel-theme">
+        <option value="auto">Auto (theo giờ)</option>
+        <option value="dark">Dark</option>
+        <option value="neon">Neon</option>
+        <option value="pastel">Pastel</option>
+        <option value="cyberpunk">Cyberpunk</option>
+        <option value="retro">Retro</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="sel-effect">Hiệu ứng</label>
+      <select id="sel-effect">
+        <option value="random">Random mỗi lần mở</option>
+        <option value="snow">Tuyết</option>
+        <option value="rain">Mưa</option>
+        <option value="leaves">Lá rơi</option>
+        <option value="fireworks">Pháo hoa</option>
+        <option value="stars">Sao băng</option>
+        <option value="bubbles">Bong bóng</option>
+        <option value="combo">Combo (Tuyết + Sao)</option>
+        <option value="off">Tắt</option>
+      </select>
+    </div>
+
+    <!-- NHÓM MỚI: Hiệu ứng tên -->
+    <div class="group">
+      <label for="sel-namefx">Hiệu ứng tên</label>
+      <select id="sel-namefx">
+        <option value="none">Tắt</option>
+        <option value="fire">Chữ lửa 🔥</option>
+        <option value="neon">Neon sáng ✨</option>
+        <option value="electric">Điện chạy quanh ⚡</option>
+      </select>
+    </div>
+
+    <div class="group share">
+      <label>Chia sẻ nhanh</label>
+      <div class="share-row">
+        <button id="btn-copy-discord" class="mini-btn">Copy Discord link</button>
+        <button id="btn-qr" class="mini-btn">QR Server</button>
+      </div>
+      <div id="qr-wrap" class="qr-wrap" hidden>
+        <img id="qr-img" alt="QR vào server Discord" />
+      </div>
+    </div>
+
+    <div class="group hint-keys">
+      <small>Phím tắt: <kbd>T</kbd> đổi theme • <kbd>E</kbd> đổi hiệu ứng nền • <kbd>N</kbd> đổi hiệu ứng tên • <kbd>M</kbd> play/pause • <kbd>G</kbd> mở gallery • <kbd>Esc</kbd> đóng lightbox/gallery</small>
+    </div>
+  </div>
+
+  <!-- Modal Gallery -->
+  <div id="modal-gallery" class="modal" aria-hidden="true" role="dialog" aria-label="Gallery ảnh">
+    <div class="modal-content">
+      <button class="modal-close" data-close-gallery aria-label="Đóng">✕</button>
+      <h3>Khoảnh khắc</h3>
+      <div id="gallery-grid" class="gallery-grid" aria-live="polite"></div>
+      <div id="lightbox" class="lightbox" hidden>
+        <img id="lightbox-img" alt="Xem ảnh lớn" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Mini-game (Easter Egg) -->
+  <div id="modal-game" class="modal" aria-hidden="true" role="dialog" aria-label="Mini game">
+    <div class="modal-content game">
+      <button class="modal-close" data-close-game aria-label="Đóng">✕</button>
+      <h3>Chill Clicker</h3>
+      <p>Click để tích Chill Coin. Kỷ lục của bạn: <strong id="game-high">0</strong></p>
+      <button id="game-click" class="btn game-btn">+1 🎯</button>
+      <p>Điểm hiện tại: <strong id="game-score">0</strong></p>
+    </div>
+  </div>
+
+  <script src="profile.js"></script>
+</body>
+</html>

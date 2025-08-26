@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Đội ngũ Vùng Đất Chill</title>
+  <meta name="description" content="Danh sách staff của Vùng Đất Chill" />
+  <meta name="theme-color" content="#0b1530" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="profile.css" />
+</head>
+<body>
+  <!-- Gravity Canvas (default style) -->
+  <canvas id="canvas" aria-hidden="true"></canvas>
+    <!-- Nền động -->
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+  <!-- Lưới synthwave – chỉ hiện ở EPIC MODE -->
+  <div id="epic-grid" aria-hidden="true"></div>
+
+  <main class="page" id="top">
+    <div class="toolbar" role="region" aria-label="Thanh công cụ">
+      <div class="toolbar-inner">
+        <a id="home-btn" class="btn home" href="../index.html" aria-label="Về trang chủ">🏠 Trang chủ</a>
+        <input id="search" class="search" type="search"
+               placeholder="Tìm kiếm thành viên (/, Ctrl+K)"
+               aria-label="Tìm kiếm thành viên" autocomplete="off" />
+        <button id="theme-toggle"  class="btn theme"  type="button" aria-pressed="false" aria-label="Đổi chủ đề">🌙</button>
+        <button id="style-toggle"  class="btn mode"   type="button" aria-pressed="false" aria-label="Đổi giao diện">🎛️ Epic</button>
+      </div>
+    </div>
+
+    <div class="title-wrap">
+      <h1 class="title" aria-describedby="quote">Đội ngũ Vùng Đất Chill</h1>
+      <div class="fireflies" aria-hidden="true"></div>
+      <p id="quote" class="quote" role="status" aria-live="polite"></p>
+    </div>
+    <div class="hero-gap" aria-hidden="true"></div>
+
+    <section id="staff-list" class="groups" aria-label="Danh sách thành viên theo cấp"></section>
+
+    <div id="result-status" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <footer class="foot">© 2025 Vùng Đất Chill • made by Hugnw</footer>
+  </main>
+
+  <noscript>Vui lòng bật JavaScript để xem danh sách thành viên.</noscript>
+
+  <script defer src="profile.js"></script>
+</body>
+</html>

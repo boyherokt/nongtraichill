@@ -1,0 +1,654 @@
+/* ======= DARK HIỆN ĐẠI (Tinh tế, ít neon) ======= */
+:root{
+  --bg:#0e1116;
+  --panel:rgba(255,255,255,.03);
+  --card:rgba(255,255,255,.04);
+  --text:#e5e7eb;
+  --muted:#9aa4b2;
+  --primary:#6366f1;   /* indigo 500 */
+  --accent:#3b82f6;    /* blue 500 */
+  --ok:#10b981;
+  --warn:#f59e0b;
+  --border:rgba(255,255,255,.10);
+
+  /* Video background tuning */
+  --bg-video-opacity:.30;
+  --bg-video-blur:1px;
+
+  /* Header height */
+  --header-h:72px;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;color:var(--text);
+  font-family:"Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  letter-spacing:0;
+  background: var(--bg);
+}
+
+/* ==== NỀN VIDEO CỐ ĐỊNH ==== */
+.bg-fixed.bg-video{
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  overflow: hidden;
+}
+.bg-video-el{
+  position: absolute; top: 50%; left: 50%;
+  min-width: 100%; min-height: 100%;
+  width: auto; height: auto;
+  transform: translate(-50%, -50%);
+  object-fit: cover;
+  filter: blur(var(--bg-video-blur));
+  opacity: var(--bg-video-opacity);
+}
+.bg-overlay{
+  position: absolute; inset: 0; pointer-events: none;
+  /* lớp che tối tinh tế, không còn loang màu neon */
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,.35), rgba(0,0,0,.55));
+}
+
+/* ===== Header (fixed) ===== */
+.header{
+  position: fixed; inset: 0 0 auto 0;
+  z-index: 10000;
+  height: var(--header-h);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 8vw 10px 18px; /* tăng padding trái/phải cho desktop */
+  background: rgba(8,10,14,.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1.5px solid var(--border);
+  box-shadow: 0 2px 10px rgba(0,0,0,.25);
+  gap: 0;
+}
+@media (max-width: 700px) {
+  .header {
+    padding: 8px 8px 8px 10px;
+    height: var(--header-h);
+  }
+}
+body{ padding-top: var(--header-h); }
+
+.brand{
+  display:flex;align-items:center;gap:10px;min-width:0;
+  flex-shrink:0;
+}
+.logo{
+  font-size:22px;filter:none;flex-shrink:0;
+  margin-right:2px;
+}
+
+/* Ẩn hoàn toàn marquee cũ */
+.header-marquee-wrap,
+.header-marquee,
+.header-marquee-fade {
+  display: none !important;
+}
+
+/* Quote động dưới header */
+.dynamic-quote {
+  margin: 0 auto 10px auto;
+  max-width: 900px;
+  padding: 14px 18px 6px 18px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #a5b4fc;
+  text-align: center;
+  letter-spacing: .1px;
+  user-select: none;
+  transition: color .3s;
+}
+body.theme-retro .dynamic-quote {
+  color: #b48a00;
+  font-family: inherit;
+}
+
+/* Retro: đổi màu fade cho đồng bộ */
+body.theme-retro .header-marquee-fade.left {
+  background: linear-gradient(
+    to right,
+    rgba(255,224,102,0.96) 0%,
+    rgba(255,224,102,0.65) 60%,
+    rgba(255,224,102,0.0) 100%
+  );
+}
+body.theme-retro .header-marquee-fade.right {
+  background: linear-gradient(
+    to left,
+    rgba(255,224,102,0.96) 0%,
+    rgba(255,224,102,0.65) 60%,
+    rgba(255,224,102,0.0) 100%
+  );
+}
+/* ...existing code... */
+.header .nav {
+  flex-shrink:0;
+  display:flex;align-items:center;gap:12px;
+  min-width: 0;
+}
+
+/* ===== Layout ===== */
+.container{max-width:1100px;margin:auto;padding:24px}
+.panel{
+  padding:16px;border-radius:14px;background:var(--panel);
+  border:1px solid var(--border);
+  box-shadow:0 8px 24px rgba(0,0,0,.18);
+}
+
+/* ===== Controls ===== */
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.search{ position: relative; }
+.search input,.select,.btn{
+  padding:10px 12px;border-radius:10px;outline:none;
+  background:var(--card);color:var(--text);border:1px solid var(--border);
+  transition:border .15s, box-shadow .15s, transform .04s;
+}
+.search input::placeholder{color:#98a2b3}
+.search input:focus,.select:focus{
+  border-color:rgba(99,102,241,.55);
+  box-shadow:0 0 0 4px rgba(99,102,241,.18);
+}
+.select{appearance:none}
+
+/* ===== Autocomplete suggest ===== */
+.suggest{
+  position:absolute; left:0; right:0; top: calc(100% + 6px);
+  margin:0; padding:6px; list-style:none; z-index: 50;
+  background: var(--panel);
+  border:1px solid var(--border);
+  border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,.35);
+  max-height: 260px; overflow:auto;
+}
+.suggest[hidden]{ display:none; }
+.suggest li{
+  display:flex; align-items:center; gap:8px;
+  padding:8px 10px; border-radius:8px; cursor:pointer;
+}
+.suggest li:hover,.suggest li.active{
+  background: var(--card);
+}
+
+/* ===== Grid & Cards ===== */
+.cmd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:900px){.cmd-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.cmd-grid{grid-template-columns:1fr}}
+
+.cmd-card{
+  position:relative;overflow:hidden;padding:14px;border-radius:12px;
+  background:var(--card);border:1px solid var(--border);
+  transition:transform .08s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.cmd-card:hover{
+  transform:translateY(-2px);
+  border-color:rgba(255,255,255,.16);
+  box-shadow:0 10px 28px rgba(0,0,0,.28);
+}
+
+/* ===== Badges ===== */
+.badge{
+  margin-left:6px;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.3px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid var(--border);
+}
+.badge.ok{ background: rgba(16,185,129,.18); border-color: rgba(16,185,129,.35); }
+.badge.type-prefix{ background: rgba(99,102,241,.18); border-color: rgba(99,102,241,.35); }
+.badge.type-slash { background: rgba(59,130,246,.18); border-color: rgba(59,130,246,.35); }
+
+/* ===== Text & code blocks ===== */
+.muted{color:var(--muted)}
+.usage-wrap{ position: relative; }
+.cmd-usage{
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px 56px 10px 10px; /* chừa chỗ cho nút copy */
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  font-size:13px;
+  cursor: pointer;
+  user-select: text;
+  white-space: nowrap; overflow-x: auto; scrollbar-width: thin;
+}
+
+/* ===== Buttons ===== */
+.btn{
+  background:var(--primary);
+  color:#fff; border:1px solid transparent; border-radius:10px;
+  padding:8px 14px;font-weight:600;cursor:pointer;
+  text-decoration:none; /* không gạch chân cho link dạng .btn */
+  box-shadow:0 6px 16px rgba(99,102,241,.22);
+}
+.btn:hover{ filter:brightness(1.05); }
+.btn:active{ transform:translateY(0); }
+.btn:focus-visible{ outline:2px solid rgba(99,102,241,.8); outline-offset:2px; }
+
+/* Nút copy nổi trong code */
+.btn-copy{
+  position:absolute; top:8px; right:8px; z-index: 2;
+  min-width: 34px; height: 30px; padding: 0 10px;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.06);
+  color:#fff; border-radius:8px; cursor:pointer;
+  transition: transform .04s, filter .15s, box-shadow .15s, background .15s;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);
+}
+.btn-copy:hover{ filter: brightness(1.05); }
+.btn-copy:active{ transform: translateY(1px); }
+.btn-copy.copied{ background: rgba(16,185,129,.25); }
+
+/* ===== Nhóm danh mục (Accordion + Actions) ===== */
+.cat-group {
+  margin: 22px 0 28px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 32px 0 rgba(40,48,80,0.10);
+  background: rgba(24,28,35,0.92);
+  border: none;
+}
+body.theme-retro .cat-group {
+  /* retro giữ nguyên */
+  background: var(--panel);
+  box-shadow: none;
+  border: none;
+}
+
+.cat-head {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 10px;
+  background: #232733;
+  padding: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+body.theme-retro .cat-head {
+  background: none;
+  border-bottom: none;
+}
+
+.cat-title {
+  margin: 0;
+  padding: 12px 18px 12px 18px;
+  display: inline-flex; align-items: center; gap: 10px;
+  border-radius: 0;
+  cursor: pointer; user-select: none;
+  font-size: 17px; font-weight: 700; letter-spacing: .2px;
+  background: transparent;
+  color: #f5f7fa;
+  border: none;
+  box-shadow: none;
+  flex: 1 1 auto;
+  transition: background .15s;
+}
+.cat-title:hover, .cat-title:focus {
+  background: #232733;
+}
+.cat-title .caret {
+  transition: transform .2s ease;
+  color: #a5b4fc;
+  font-size: 18px;
+}
+.cat-title[aria-expanded="false"] .caret {
+  transform: rotate(-90deg);
+}
+.cat-actions {
+  display: none !important; /* Ẩn copy tất cả */
+}
+body.theme-retro .cat-title {
+  /* retro giữ nguyên */
+  background: #fff7c2;
+  color: #b48a00;
+  border: 2px solid #b48a00;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(0,0,0,.15);
+  padding: 8px 12px;
+}
+body.theme-retro .cat-title .caret {
+  color: #b48a00;
+}
+body.theme-retro .cat-actions {
+  display: flex !important;
+}
+
+.cat-body {
+  margin-top: 0;
+  padding: 18px 18px 10px 18px;
+  background: transparent;
+}
+body.theme-retro .cat-body {
+  padding: 6px 0 0 0;
+}
+
+.cat-collapsed .cat-body { display: none; }
+
+/* ===== Audio UI (rút gọn) ===== */
+.audio-ui{
+  position: fixed; right: 18px; bottom: 18px; z-index: 11000;
+  display:flex; align-items:center; gap:10px;
+  padding:8px; border-radius:999px;
+  background: var(--panel); border:1px solid var(--border);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  box-shadow:0 10px 30px rgba(0,0,0,.3);
+}
+.btn-audio{
+  width:42px;height:42px;border-radius:999px;border:1px solid var(--border);
+  background:var(--card);
+  cursor:pointer; display:grid; place-items:center;
+  box-shadow:0 4px 12px rgba(0,0,0,.25);
+}
+.btn-audio:active{ transform: translateY(1px); }
+
+/* Equalizer bars */
+.eq{display:inline-flex; gap:3px; align-items:flex-end; height:16px}
+.eq i{
+  width:3px; height:6px; background:#fff; opacity:.8; border-radius:2px;
+  transform-origin: bottom; animation: eqStop 1s infinite;
+}
+.audio-ui.playing .eq i:nth-child(1){ animation: eq1 .9s infinite ease-in-out; }
+.audio-ui.playing .eq i:nth-child(2){ animation: eq2 1s infinite ease-in-out; }
+.audio-ui.playing .eq i:nth-child(3){ animation: eq3 .8s infinite ease-in-out; }
+
+@keyframes eq1{ 0%,100%{height:4px} 50%{height:16px} }
+@keyframes eq2{ 0%,100%{height:6px} 50%{height:13px} }
+@keyframes eq3{ 0%,100%{height:5px} 50%{height:15px} }
+@keyframes eqStop{ 0%,100%{height:6px} 50%{height:6px} }
+
+/* Toast */
+.toast{
+  position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+  background: rgba(16,18,24,.95);
+  border: 1px solid var(--border);
+  color: #fff; padding: 10px 14px; border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  z-index: 12000; opacity: 0; pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.toast.show{ opacity: 1; transform: translateX(-50%) translateY(-4px); }
+
+/* ===== Highlight keyword ===== */
+.hl{ background: rgba(99,102,241,.25); padding:0 2px; border-radius:4px }
+
+/* ===== Command Palette (Kbar) ===== */
+.kbar{ position:fixed; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.45); backdrop-filter: blur(2px); z-index:13000 }
+.kbar[hidden]{ display:none }
+.kbar-box{ width:min(720px,92vw); background: rgba(20,22,28,.92); border:1px solid var(--border); border-radius:12px; box-shadow: 0 20px 60px rgba(0,0,0,.5) }
+.kbar-head{ display:flex; align-items:center; padding:10px 12px; gap:10px }
+.kbar-title{ font-weight:600; letter-spacing:.2px }
+.kbar-close{ margin-left:auto; border:none; background:transparent; color:#fff; font-size:18px; cursor:pointer }
+.kbar-input{ width:100%; border:none; outline:none; padding:12px 14px; background:rgba(255,255,255,.04); color:#fff; border-top:1px solid var(--border) }
+.kbar-list{ list-style:none; margin:0; padding:6px; max-height:50vh; overflow:auto }
+.kbar-list li{ padding:8px 10px; border-radius:8px; display:flex; align-items:center; gap:8px; cursor:pointer }
+.kbar-list li.active, .kbar-list li:hover{ background:rgba(255,255,255,.04) }
+.kbar-hint{ padding:10px; color:var(--muted); font-size:12px; border-top:1px solid var(--border) }
+
+/* Mobile tweak */
+@media (max-width: 560px){
+  :root{ --header-h:64px; }
+  .cat-group{ margin:14px 0 20px }
+}
+/* ==== Readability/Contrast fixes (paste at END of style.css) ==== */
+
+/* 1) Tăng tương phản tổng thể một chút */
+:root{
+  --text:#f5f7fa;      /* sáng hơn */
+  --muted:#c9d1da;     /* muted bớt nhạt để dễ đọc */
+}
+
+/* 2) Header & tiêu đề rõ hơn */
+.header{
+  background: rgba(8,10,14,.75);            /* đậm nền để chữ nổi hơn */
+  border-bottom-color: rgba(255,255,255,.14);
+}
+.header h1{
+  font-size:20px; font-weight:700; color:#fff;
+  letter-spacing:.3px;
+  text-shadow:0 1px 1px rgba(0,0,0,.5);     /* viền mờ giúp nổi trên video */
+}
+
+/* 3) Select + Option: chữ đậm & dễ đọc hơn */
+.select{
+  color:#f8fafc;           /* chữ trong ô select (trạng thái đóng) */
+  font-weight:600;         /* đậm hơn một nhịp để bớt nhạt */
+  caret-color:#f8fafc;
+}
+
+/* Màu chữ trong menu dropdown của select (Chrome/Edge/most) */
+.select option{
+  color:#0f172a;           /* slate-900: đen xám trên nền trắng mặc định */
+  background:#ffffff;      /* nhiều trình duyệt không nhận bg, nhưng thêm vẫn tốt */
+  font-weight:600;
+}
+
+/* Firefox có thể tôn trọng dark menu — đảm bảo vẫn đủ tương phản */
+@supports (color-scheme: dark){
+  .select{ color-scheme: dark; } /* gợi ý trình duyệt dùng dark chrome nếu có */
+}
+
+/* 4) Placeholder & input tăng tương phản chút */
+.search input::placeholder{ color:#cbd5e1; }
+
+/* 5) Card viền rõ hơn tí cho dễ tách nền */
+.panel{ border-color: rgba(255,255,255,.14); }
+.cmd-card{ border-color: rgba(255,255,255,.12); }
+
+/* 6) Logo bớt hiệu ứng để không nhiễu thị giác cạnh title */
+.logo{ filter:none; }
+
+/* ==== RETRO THEME ==== */
+body.theme-retro {
+  --bg: #fffbe6;
+  --panel: #fff7c2;
+  --card: #fff3a6;
+  --text: #2d2a1d;
+  --muted: #8d7b3a;
+  --primary: #b48a00;
+  --accent: #e67e22;
+  --ok: #388e3c;
+  --warn: #d84315;
+  --border: #b48a00;
+  --bg-video-opacity: 0.10;
+  --bg-video-blur: 0px;
+  font-family: 'Fira Mono', 'Consolas', 'Liberation Mono', monospace;
+  letter-spacing: 0.5px;
+  background: var(--bg);
+}
+
+/* Đảm bảo nền video vẫn hiện ở retro */
+body.theme-retro .bg-fixed.bg-video,
+body.theme-retro .bg-video-el {
+  display: block !important;
+  opacity: 1 !important;
+  /* Không filter blur, giữ nguyên video */
+  filter: none !important;
+}
+
+/* Lớp phủ overlay cho retro: vàng nhạt */
+body.theme-retro .bg-overlay {
+  background: linear-gradient(to bottom, rgba(255, 244, 181, 0.55), rgba(255, 244, 181, 0.85));
+}
+
+body.theme-retro .header {
+  background: #ffe066 !important;
+  border-bottom: 2px solid #b48a00 !important;
+  box-shadow: 0 2px 0 #b48a00;
+}
+body.theme-retro .header h1 {
+  color: #b48a00 !important;
+  text-shadow: none !important;
+  font-family: inherit;
+  font-size: 22px;
+}
+body.theme-retro .logo {
+  font-size: 26px;
+  filter: none;
+}
+body.theme-retro .panel {
+  background: var(--panel);
+  border: 2px solid #b48a00;
+  box-shadow: none;
+}
+body.theme-retro .cmd-card {
+  background: var(--card);
+  border: 2px solid #b48a00;
+  box-shadow: none;
+  font-family: inherit;
+}
+body.theme-retro .btn,
+body.theme-retro .btn-copy,
+body.theme-retro .btn-mini,
+body.theme-retro .btn-audio {
+  background: #ffe066;
+  color: #2d2a1d;
+  border: 2px solid #b48a00;
+  font-family: inherit;
+  box-shadow: none;
+  font-weight: bold;
+  transition: background .12s;
+}
+body.theme-retro .btn:hover,
+body.theme-retro .btn-copy:hover,
+body.theme-retro .btn-mini:hover,
+body.theme-retro .btn-audio:hover {
+  background: #fff3a6;
+  color: #b48a00;
+}
+body.theme-retro .select,
+body.theme-retro .search input {
+  background: #fffbe6;
+  color: #2d2a1d;
+  border: 2px solid #b48a00;
+  font-family: inherit;
+  font-weight: bold;
+}
+body.theme-retro .select option {
+  color: #2d2a1d;
+  background: #fffbe6;
+  font-weight: bold;
+}
+body.theme-retro .muted {
+  color: #8d7b3a !important;
+}
+body.theme-retro .badge {
+  background: #ffe066;
+  border: 2px solid #b48a00;
+  color: #b48a00;
+  font-family: inherit;
+}
+body.theme-retro .badge.ok {
+  background: #e6ffb3;
+  border-color: #388e3c;
+  color: #388e3c;
+}
+body.theme-retro .badge.type-prefix {
+  background: #d0e6ff;
+  border-color: #1976d2;
+  color: #1976d2;
+}
+body.theme-retro .badge.type-slash {
+  background: #ffe0e6;
+  border-color: #d84315;
+  color: #d84315;
+}
+body.theme-retro .cmd-usage {
+  background: #fffbe6;
+  border: 2px dashed #b48a00;
+  color: #2d2a1d;
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
+body.theme-retro .cat-title {
+  background: #fff7c2;
+  border: 2px solid #b48a00;
+  color: #b48a00;
+  font-family: inherit;
+}
+body.theme-retro .cat-title .caret {
+  color: #b48a00;
+}
+body.theme-retro .cat-actions .btn-mini {
+  background: #ffe066;
+  color: #b48a00;
+  border: 2px solid #b48a00;
+}
+body.theme-retro .audio-ui {
+  background: #fff7c2;
+  border: 2px solid #b48a00;
+  box-shadow: none;
+}
+body.theme-retro .eq i {
+  background: #b48a00;
+  opacity: 1;
+}
+body.theme-retro .toast {
+  background: #ffe066;
+  border: 2px solid #b48a00;
+  color: #2d2a1d;
+  box-shadow: none;
+}
+body.theme-retro .hl {
+  background: #ffe0b2;
+  color: #b48a00;
+}
+body.theme-retro .kbar {
+  background: rgba(255, 244, 181, 0.85);
+  backdrop-filter: none;
+}
+body.theme-retro .kbar-box {
+  background: #fffbe6;
+  border: 2px solid #b48a00;
+  box-shadow: none;
+}
+body.theme-retro .kbar-title {
+  color: #b48a00;
+  font-family: inherit;
+}
+body.theme-retro .kbar-input {
+  background: #fffbe6;
+  color: #2d2a1d;
+  border-top: 2px solid #b48a00;
+  font-family: inherit;
+}
+body.theme-retro .kbar-list li,
+body.theme-retro .kbar-list li.active,
+body.theme-retro .kbar-list li:hover {
+  background: #fff7c2;
+  color: #2d2a1d;
+  font-family: inherit;
+}
+body.theme-retro .kbar-hint {
+  color: #8d7b3a;
+  border-top: 2px solid #b48a00;
+  background: #fffbe6;
+}
+}
+body.theme-retro .kbar-box {
+  background: #fffbe6;
+  border: 2px solid #b48a00;
+  box-shadow: none;
+}
+body.theme-retro .kbar-title {
+  color: #b48a00;
+  font-family: inherit;
+}
+body.theme-retro .kbar-input {
+  background: #fffbe6;
+  color: #2d2a1d;
+  border-top: 2px solid #b48a00;
+  font-family: inherit;
+}
+body.theme-retro .kbar-list li,
+body.theme-retro .kbar-list li.active,
+body.theme-retro .kbar-list li:hover {
+  background: #fff7c2;
+  color: #2d2a1d;
+  font-family: inherit;
+}
+body.theme-retro .kbar-hint {
+  color: #8d7b3a;
+  border-top: 2px solid #b48a00;
+  background: #fffbe6;
+}

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Vùng Đất Chill • Hướng dẫn lệnh</title>
+  <link rel="icon" href="logo.svg">
+
+  <!-- Fonts (Inter hiện đại, gọn gàng) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <!-- NỀN VIDEO -->
+  <div class="bg-fixed bg-video" aria-hidden="true">
+    <video id="bgvid" class="bg-video-el"
+           autoplay muted loop playsinline preload="auto"
+           poster="assets/bg-poster.jpg">
+      <source src="assets/bg.mp4"  type="video/mp4">
+      <source src="assets/bg.webm" type="video/webm">
+    </video>
+    <div class="bg-overlay"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <div class="logo">📜</div>
+    </div>
+    <nav class="nav" style="display:flex;align-items:center;gap:12px">
+      <!-- Thêm select đổi giao diện -->
+      <select id="theme-switcher" class="select" title="Đổi giao diện" style="min-width:110px">
+        <option value="modern">Hiện đại</option>
+        <option value="retro">Retro</option>
+      </select>
+      <!-- Không gạch chân, giữ là .btn -->
+      <a class="btn" href="../index.html">← Về trang chính</a>
+    </nav>
+  </header>
+
+  <!-- Quote động dưới header -->
+  <div id="dynamic-quote" class="dynamic-quote"></div>
+
+  <!-- Audio UI (đã lược giản: chỉ nút bật/tắt) -->
+  <div class="audio-ui" id="audio-ui" aria-live="polite">
+    <button id="bgm-toggle" class="btn-audio" aria-label="Phát/Tắt nhạc" title="Phát/Tắt nhạc">
+      <span class="eq"><i></i><i></i><i></i></span>
+    </button>
+  </div>
+
+  <!-- Main -->
+  <main class="container">
+    <section class="panel">
+      <div class="toolbar">
+        <div class="search">
+          <input id="cmd-search" placeholder="Tìm theo tên / mô tả / ví dụ..."/>
+          <ul id="suggest" class="suggest" hidden></ul>
+        </div>
+        <select id="cmd-type" class="select" title="Loại lệnh">
+          <option value="all">Tất cả loại</option>
+          <option value="prefix">Prefix</option>
+          <option value="slash">Slash</option>
+        </select>
+        <select id="cmd-category" class="select" title="Danh mục">
+          <option value="all">Tất cả danh mục</option>
+        </select>
+      </div>
+
+      <!-- Danh sách lệnh (render bằng JS) -->
+      <div id="cmd-list"></div>
+    </section>
+  </main>
+
+  <!-- Toast copy -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Command Palette (Ctrl/Cmd + K) -->
+  <div id="kbar" class="kbar" role="dialog" aria-modal="true" aria-labelledby="kbar-title" hidden>
+    <div class="kbar-box">
+      <div class="kbar-head">
+        <div id="kbar-title" class="kbar-title">Tìm lệnh nhanh</div>
+        <button id="kbar-close" class="kbar-close" aria-label="Đóng">✕</button>
+      </div>
+      <input id="kbar-input" class="kbar-input" placeholder="Gõ tên lệnh… (Enter để copy)"/>
+      <ul id="kbar-list" class="kbar-list" role="listbox" aria-label="Kết quả"></ul>
+      <div class="kbar-hint">↑/↓ chọn • Enter copy • Esc đóng</div>
+    </div>
+  </div>
+
+  <!-- Nhạc nền -->
+  <audio id="bgm" preload="auto" loop src="assets/music.mp3"></audio>
+
+  <script src="commands.data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    // Theme switcher logic
+    (function(){
+      var select = document.getElementById('theme-switcher');
+      var body = document.body;
+      var LS_KEY = "vdc_theme";
+      // Load from localStorage
+      var saved = localStorage.getItem(LS_KEY);
+      if(saved==="retro") {
+        select.value = "retro";
+        body.classList.add("theme-retro");
+      }
+      select.addEventListener("change", function(){
+        if(this.value==="retro"){
+          body.classList.add("theme-retro");
+          localStorage.setItem(LS_KEY, "retro");
+        } else {
+          body.classList.remove("theme-retro");
+          localStorage.setItem(LS_KEY, "modern");
+        }
+      });
+    })();
+
+    // Quote động dưới header
+    (function(){
+      var quotes = [
+        "Hướng Dẫn Lệnh • Khám phá các lệnh hữu ích cho cộng đồng.",
+        "Tip: Dùng Ctrl/Cmd + K để tìm lệnh nhanh.",
+        "Bạn có thể tìm kiếm theo tên, mô tả hoặc ví dụ.",
+        "Chọn giao diện Retro nếu thích phong cách cổ điển!",
+        "Nhấn vào cú pháp để copy nhanh.",
+        "Danh mục được tối ưu cho cả mobile và desktop.",
+        "Chúc bạn một ngày vui vẻ cùng Vùng Đất Chill!"
+      ];
+      var idx = 0;
+      var el = document.getElementById('dynamic-quote');
+      function showQuote() {
+        if (!el) return;
+        el.textContent = quotes[idx];
+        idx = (idx + 1) % quotes.length;
+      }
+      showQuote();
+      setInterval(showQuote, 5000);
+    })();
+  </script>
+</body>
+</html>

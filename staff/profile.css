@@ -1,0 +1,822 @@
+/* ====== UI nâng cấp + Epic Mode + Hover Expand ====== */
+@layer base, components, utilities;
+
+:root{
+  --bg:#05080f; --panel:rgba(17,24,39,.52);
+  --text:#e5e7eb; --muted:#9ca3af;
+  --b1:#60a5fa; --b2:#22d3ee; --b3:#a78bfa;
+  --ring:#9cc6ff; --glow:rgba(96,165,250,.35);
+  --brd:rgba(255,255,255,.08); --brd-2:rgba(255,255,255,.16);
+  --badgeGlow: 0 0 10px rgba(125,211,252,.7), 0 0 24px rgba(167,139,250,.45);
+}
+
+html,body{height:100%}
+body{
+  margin:0; color:var(--text);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: radial-gradient(1200px 800px at 10% 10%, #0b1530 0%, var(--bg) 55%) fixed;
+  overflow-x:hidden;
+}
+.page{min-height:100%; display:flex; flex-direction:column; align-items:center; padding:48px 20px 24px}
+
+/* ====== Tiêu đề + đom đóm + quote ====== */
+.title-wrap{ position: relative; margin: 0 0 28px; text-align:center; }
+.title{
+  margin:0; font-weight:900; letter-spacing:.8px;
+  font-size:clamp(22px, 3.2vw, 34px);
+  background: conic-gradient(from 120deg at 50% 50%, var(--b1), var(--b2), var(--b3), var(--b1));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  filter: drop-shadow(0 2px 8px rgba(59,130,246,.25));
+  animation: titleGlow 2.5s ease-in-out infinite;
+  user-select:none;
+}
+@keyframes titleGlow { 0%,100% { filter: drop-shadow(0 2px 8px rgba(59,130,246,.25)); } 50% { filter: drop-shadow(0 0 24px #60a5fa99) drop-shadow(0 0 36px #a78bfa66); } }
+.fireflies{ position:absolute; inset:-10px; pointer-events:none; z-index:0; }
+.firefly{
+  position:absolute; width:6px; height:6px; border-radius:999px;
+  background: radial-gradient(circle, rgba(250,255,199,1) 0%, rgba(250,255,199,.85) 45%, rgba(255,255,255,0) 70%);
+  box-shadow: 0 0 10px rgba(250,255,199,.9), 0 0 24px rgba(167,243,208,.5);
+  animation: fly var(--dur,8s) linear infinite, pulse 2.2s ease-in-out infinite;
+  mix-blend-mode: screen; opacity:.85;
+}
+.firefly::after{ content:""; position:absolute; inset:-10px; border-radius:999px; background: radial-gradient(circle, rgba(250,255,199,.35), transparent 70%); filter: blur(10px); }
+@keyframes pulse{ 0%,100%{ transform: scale(.9) } 50%{ transform: scale(1.1) } }
+@keyframes fly{
+  0%{ transform: translate(var(--x0,0px), var(--y0,0px)) }
+  25%{ transform: translate(var(--x1,40px), var(--y1,-20px)) }
+  50%{ transform: translate(var(--x2,80px), var(--y2,10px)) }
+  75%{ transform: translate(var(--x3,20px), var(--y3,30px)) }
+  100%{ transform: translate(var(--x0,0px), var(--y0,0px)) }
+}
+.quote{
+  margin: 10px auto 4px; max-width: 880px; padding: 10px 14px;
+  font-size: 14px; color: var(--muted); line-height: 1.6;
+  border:1px solid var(--brd); border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+  backdrop-filter: blur(6px);
+  animation: quoteFade .6s ease;
+}
+@keyframes quoteFade{ from{ opacity:0; transform: translateY(6px) } to{ opacity:1; transform:none } }
+
+/* ====== Nhóm + lưới ====== */
+.groups{ width:min(1100px,100%); display:flex; flex-direction:column; gap:22px; margin-bottom:44px }
+.group{ background: transparent; border-radius:20px; padding:0 }
+.group-title{
+  margin:6px 6px 8px; padding:4px 10px; width:max-content; max-width:100%;
+  font-weight:900; letter-spacing:.4px; font-size:14px; color:#c7d2fe;
+  background: rgba(255,255,255,.05); border:1px solid var(--brd); border-radius:999px;
+  box-shadow: 0 8px 22px -14px rgba(99,102,241,.5);
+}
+.group-desc{ margin: 0 10px 10px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.group-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:22px; perspective: 900px; }
+
+/* Nhóm chỉ có 1 người – card giữa, cover to */
+.group.is-single .group-grid{ grid-template-columns: minmax(300px, 420px); justify-content:center; justify-items:center; }
+.group.is-single .group-grid .card{ width:100%; max-width:420px; }
+.group.is-single .cover-wrap{ height:140px; }
+
+/* Expand cover height when card is active to match enlarged card */
+.card.is-active .cover-wrap{ block-size: 96px; }
+.group.is-single .card.is-active .cover-wrap{ block-size: 156px; }
+.group.is-single .ava-wrap{ width:112px; height:112px; margin-bottom:12px; }
+
+/* ====== Card ====== */
+.card{
+  position:relative; isolation:isolate; display:block; text-decoration:none; color:inherit;
+  padding:20px 14px 16px; border-radius:18px; background:var(--panel);
+  overflow:hidden; transform-style: preserve-3d; backdrop-filter: blur(12px) saturate(1.1);
+  border:1px solid var(--brd);
+  box-shadow: 0 18px 48px -22px rgba(0,0,0,.65), 0 1px 0 0 rgba(255,255,255,.04) inset, 0 0 0 1px rgba(255,255,255,.03) inset;
+  transition: transform .22s cubic-bezier(.23,1.01,.32,1), box-shadow .22s cubic-bezier(.23,1.01,.32,1), background .22s ease, border-color .22s ease, opacity .2s ease, filter .2s ease;
+  outline:none; opacity:0; transform:translateY(22px) scale(.985);
+  animation:cardIn .5s cubic-bezier(.23,1.01,.32,1) forwards;
+}
+@keyframes cardIn{ to{ opacity:1; transform:none } }
+.card::before{ content:""; position:absolute; inset:-1px; border-radius:inherit; z-index:-1;
+  background: conic-gradient(from 0deg, var(--b1), var(--b2), var(--b3), var(--b1));
+  filter: blur(8px) saturate(1.1); opacity:.45; transition:opacity .25s ease, transform .25s ease; }
+
+/* ====== Hover Expand (CHỈ hover mới phóng to) ====== */
+.group-grid:hover .card{ transform: translateY(-2px) scale(.94); opacity:.7; filter:saturate(.9); }
+.card.is-active{
+  transform: translateY(-10px) scale(1.08) !important;
+  z-index:5; opacity:1 !important; filter:none;
+}
+.card.is-dim{ transform: translateY(0) scale(.92) !important; opacity:.55 !important; filter:saturate(.85) !important; }
+
+/* Cover + parallax nhẹ */
+.cover-wrap{
+  position: relative; display:block; height: 80px;
+  margin: calc(-20px - 1px) -14px 8px; border-radius: 18px 18px 0 0; overflow:hidden;
+  background: linear-gradient(90deg, rgba(37,99,235,.35), rgba(124,58,237,.35));
+  transition: height .25s ease;
+  will-change: height;
+}
+.cover{ width:100%; height:100%; object-fit:cover; display:block; filter:saturate(1.05) contrast(1.03); transform: translateY(0); transition: transform .25s ease; will-change: transform; }
+.card.is-active .cover{ transform: translateY(-6px) scale(1.06); }
+.cover-glow{ position:absolute; inset:0; pointer-events:none; box-shadow: inset 0 -36px 60px -40px rgba(0,0,0,.5) }
+.cover-wrap + .ava-wrap{ margin-top:-32px }
+
+/* Avatar + halo */
+.ava-wrap{ position:relative; width:88px; height:88px; margin:0 auto 10px; }
+.ava{ width:100%; height:100%; border-radius:50%; object-fit:cover; display:block; position:relative; z-index:2; border:2px solid rgba(255,255,255,.12); box-shadow: 0 8px 30px rgba(34,211,238,.18), 0 2px 8px rgba(0,0,0,.5); }
+.ava-ring, .ava-ring::after{ content:""; position:absolute; inset:-5px; border-radius:999px; z-index:1; background: conic-gradient(from var(--angle,0deg), var(--b1) 0%, var(--b2) 45%, var(--b3) 75%, var(--b1) 100%); filter: blur(6px); opacity:.85; animation: ringSpin 5s linear infinite; }
+.ava-ring::after{ inset:-12px; filter: blur(16px); opacity:.4; animation-duration: 7s; }
+@keyframes ringSpin{ to{ transform: rotate(1turn) } }
+
+  /* Avatar border sweep (running light around the rim) */
+  .ava-wrap::before{
+    content:""; position:absolute; inset:-7px; border-radius:999px; pointer-events:none; z-index:3;
+    /* A narrow bright arc with soft tail */
+    background: conic-gradient(
+      from 0deg,
+      rgba(125,211,252,0) 0deg 318deg,
+      rgba(125,211,252,.9) 330deg,
+      rgba(167,139,250,.95) 345deg,
+      rgba(244,114,182,.95) 354deg,
+      rgba(244,114,182,0) 360deg
+    );
+    /* Mask to only keep the ring thickness */
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
+    filter: blur(.3px) drop-shadow(0 0 10px rgba(125,211,252,.65)) drop-shadow(0 0 16px rgba(167,139,250,.45));
+    opacity:0; transition: opacity .2s ease; animation: none;
+  }
+  @keyframes avaSweep{ to{ transform: rotate(1turn) } }
+
+  /* Show the running light only on hover */
+  .card:hover .ava-wrap::before{ opacity:1; animation: avaSweep 2.8s linear infinite; }
+
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce){
+    .ava-wrap::before,
+    .card:hover .ava-wrap::before{
+      animation: none !important;
+      opacity: 0 !important;
+    }
+  }
+
+/* Tên + badge (luôn căn giữa) */
+.name{
+  margin:6px 0 2px; text-align:center; font-weight:800; letter-spacing:.4px; font-size:16px; color:#fff;
+  text-shadow: 0 1px 6px rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.06);
+  line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.role{
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  min-width: 0;
+  padding:3px 10px; /* nhỏ lại */
+  border-radius:999px; font-size:11.5px; font-weight:800;
+  letter-spacing:.3px; margin:4px auto 0; text-align:center;
+  border:1px solid rgba(255,255,255,.16);
+  position: relative;
+  background:rgba(255,255,255,.06);
+  color:#7dd3fc;
+  box-shadow: var(--badgeGlow);
+  transition: background .25s, box-shadow .25s, color .25s;
+  background-size: 200% 200%;
+  animation: badgeGradientMove 3.5s linear infinite;
+}
+@keyframes badgeGradientMove {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+/* Hiệu ứng riêng cho từng quyền */
+.role[data-role="Founder"]{
+  background: linear-gradient(90deg, #fbbf24 0%, #fde68a 100%);
+  color: #b45309;
+  box-shadow: 0 0 12px 2px #fde68a99, 0 0 32px #fbbf2499;
+  animation: founderGlow 2.2s alternate infinite;
+}
+@keyframes founderGlow {
+  0% { box-shadow: 0 0 12px 2px #fde68a99, 0 0 32px #fbbf2499; }
+  100% { box-shadow: 0 0 24px 6px #fde68aee, 0 0 48px #fbbf24cc; }
+}
+.role[data-role="Admin"]{
+  background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+  color: #fff;
+  box-shadow: 0 0 12px 2px #60a5fa99, 0 0 32px #2563eb99;
+  animation: adminGlow 2.2s alternate infinite;
+}
+@keyframes adminGlow {
+  0% { box-shadow: 0 0 12px 2px #60a5fa99, 0 0 32px #2563eb99; }
+  100% { box-shadow: 0 0 24px 6px #60a5faee, 0 0 48px #2563ebcc; }
+}
+.role[data-role="Moderator"]{
+  background: linear-gradient(90deg, #10b981 0%, #6ee7b7 100%);
+  color: #065f46;
+  box-shadow: 0 0 12px 2px #6ee7b799, 0 0 32px #10b98199;
+  animation: modGlow 2.2s alternate infinite;
+}
+@keyframes modGlow {
+  0% { box-shadow: 0 0 12px 2px #6ee7b799, 0 0 32px #10b98199; }
+  100% { box-shadow: 0 0 24px 6px #6ee7b7ee, 0 0 48px #10b981cc; }
+}
+.role[data-role="Lễ Tân"]{
+  background: linear-gradient(90deg, #f472b6 0%, #f9a8d4 100%);
+  color: #831843;
+  box-shadow: 0 0 12px 2px #f9a8d499, 0 0 32px #f472b699;
+  animation: letanGlow 2.2s alternate infinite;
+}
+@keyframes letanGlow {
+  0% { box-shadow: 0 0 12px 2px #f9a8d499, 0 0 32px #f472b699; }
+  100% { box-shadow: 0 0 24px 6px #f9a8d4ee, 0 0 48px #f472b6cc; }
+}
+
+/* ====== Vùng chi tiết mở rộng ====== */
+.details{
+  max-height:0; opacity:0; overflow:hidden; margin-top:8px;
+  border-top:1px dashed var(--brd); padding-top:0;
+  transition:max-height .35s ease, opacity .35s ease, padding-top .35s ease;
+}
+.card.is-active .details{ max-height:480px; opacity:1; padding-top:10px; }
+.details .row{
+  /* Auto arrange but keep each badge sized to its text */
+  display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; justify-content:center;
+}
+.badge{
+  display:inline-flex; align-items:center; gap:8px; padding:5px 9px; border-radius:999px;
+  background:rgba(255,255,255,.06); border:1px solid var(--brd);
+  font-size:12px; color:var(--text); max-width:100%; white-space:nowrap;
+}
+.badge i{ font-style:normal; opacity:.8 }
+.skeleton{ --sk: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06)); background: var(--sk); background-size: 200% 100%; animation: sk 1.2s linear infinite; border-radius: 8px; height: 14px; }
+@keyframes sk{ to{ background-position: -200% 0 } }
+.details .bio{
+  font-size:13px; color:var(--muted); line-height:1.6; text-align:center; margin:8px auto;
+  max-width: 560px; padding:0 6px; /* breathing room so text doesn't touch edges */
+}
+
+/* Ripple click */
+.ripple{ position:absolute; border-radius:50%; transform:scale(0); background: radial-gradient(circle, rgba(96,165,250,.55) 0%, rgba(34,211,238,.35) 60%, transparent 70%); opacity:.8; pointer-events:none; z-index:6; animation:rip .6s cubic-bezier(.23,1.01,.32,1); }
+@keyframes rip{ to{ transform:scale(2.6); opacity:0 } }
+
+/* Toolbar */
+.toolbar{ width:min(1100px,100%); position:sticky; top:0; z-index:6; margin:0 0 16px; }
+.toolbar-inner{
+  display:flex; align-items:center; gap:10px; padding:10px; border-radius:16px;
+  background: linear-gradient(180deg, rgba(17,24,39,.65), rgba(17,24,39,.38));
+  border:1px solid var(--brd);
+  box-shadow: 0 10px 30px -20px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.04) inset;
+  backdrop-filter: blur(10px) saturate(1.1);
+  flex-wrap: wrap;
+}
+.search{
+  flex:1; min-width: 200px; padding:11px 14px; border-radius:12px; background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1); color:var(--text); font-size:14px;
+  outline:none; transition: box-shadow .2s ease, border-color .2s ease;
+}
+.search::placeholder{ color:var(--muted) }
+.search:focus{ border-color: var(--ring); box-shadow: 0 0 0 3px var(--glow); }
+.btn.theme,.btn.mode{
+  padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06); color:var(--text); font-weight:700; cursor:pointer;
+  transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+}
+.btn.theme:hover,.btn.mode:hover{ transform: translateY(-1px); box-shadow: 0 8px 22px -12px rgba(96,165,250,.45) }
+.btn.theme:active,.btn.mode:active{ transform: translateY(0) scale(.98) }
+.btn.home{
+  display:inline-flex; align-items:center; gap:8px; padding:10px 12px; border-radius:12px; text-decoration:none;
+  border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:var(--text); font-weight:800;
+  transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+}
+.btn.home:hover{ transform: translateY(-1px); box-shadow: 0 8px 22px -12px rgba(96,165,250,.45) }
+.btn.home:active{ transform: translateY(0) scale(.98) }
+
+.is-hidden{ display:none !important }
+
+/* Chủ đề sáng */
+body[data-theme="light"]{
+  --bg:#f7fafc; --panel:rgba(255,255,255,.82);
+  --text:#0b1220; --muted:#4b5563;
+  --b1:#2563eb; --b2:#06b6d4; --b3:#7c3aed;
+  --ring:#60a5fa; --glow:rgba(37,99,235,.25);
+  --brd:rgba(0,0,0,.08); --brd-2:rgba(0,0,0,.14);
+}
+body[data-theme="light"] .title{ filter:none }
+body[data-theme="light"] .card{ background:var(--panel); border-color:var(--brd) }
+body[data-theme="light"] .card:hover{ background:rgba(255,255,255,.9) }
+body[data-theme="light"] .role{ color:#2563eb; background:rgba(37,99,235,.08); border-color:rgba(37,99,235,.2) }
+body[data-theme="light"] .foot{ color:#6b7280 }
+
+/* ====== EPIC MODE ====== */
+body[data-style="epic"]{
+  background: radial-gradient(1000px 600px at 50% 22%, #1a103b 0%, #0a0b12 60%) fixed;
+  --b1:#22d3ee; --b2:#a78bfa; --b3:#f472b6;
+  --badgeGlow: 0 0 16px rgba(34,211,238,.9), 0 0 36px rgba(167,139,250,.55), 0 0 54px rgba(244,114,182,.35);
+}
+body[data-style="epic"] .title{ filter: drop-shadow(0 0 18px rgba(167,139,250,.45)) drop-shadow(0 0 36px rgba(34,211,238,.25)); }
+body[data-style="epic"] #epic-grid{ display:block; }
+#epic-grid{
+  display:none; position:fixed; left:0; right:0; bottom:-8vh; height:58vh; z-index:1;
+  background:
+    repeating-linear-gradient(to right, rgba(0,255,255,.18), rgba(0,255,255,.18) 1px, transparent 1px, transparent 60px),
+    repeating-linear-gradient(to top,   rgba(0,255,255,.14), rgba(0,255,255,.14) 1px, transparent 1px, transparent 60px);
+  transform: perspective(900px) rotateX(60deg);
+  border-top: 2px solid rgba(0,255,255,.3);
+  filter: drop-shadow(0 0 24px rgba(0,255,255,.35));
+  pointer-events:none;
+}
+body[data-style="epic"] .card::before{ opacity:.95; animation: none; }
+body[data-style="epic"] .card:hover{ box-shadow: 0 30px 70px -20px rgba(34,211,238,.55), 0 0 50px rgba(167,139,250,.45), 0 0 28px rgba(244,114,182,.35); }
+body[data-style="epic"] .role{ color:#a5f3fc; }
+body[data-style="epic"] .toolbar-inner{ background: linear-gradient(180deg, rgba(24,24,45,.85), rgba(24,24,45,.5)); }
+
+/* Mobile tweaks */
+@media (max-width: 720px){
+  .page{ padding:16px 8px 18px }
+  .groups{ gap:16px; margin-bottom:18px }
+  /* Use 2 columns for better readability on mobile */
+  .group-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px }
+  .group.is-single .group-grid{ grid-template-columns: minmax(260px, 1fr); }
+  .group.is-single .group-grid .card{ max-width: 460px; }
+  .group.is-single .cover-wrap{ height: 110px; }
+  .group.is-single .ava-wrap{ width: 92px; height: 92px }
+  .card{ border-radius:16px; padding:16px 10px }
+  .cover-wrap{ height:84px; margin:calc(-16px - 1px) -10px 10px; border-radius:16px 16px 0 0 }
+  .ava-wrap{ width:72px; height:72px }
+  .name{ font-size:15px; margin:6px 0 2px }
+  .role{ font-size:12px; padding:5px 9px }
+  .title-wrap{ margin-bottom:14px }
+  .title{ font-size:20px }
+  .foot{ font-size:11px; margin-top:6px }
+  /* Keep toolbar sticky on mobile too */
+  .toolbar{ position:sticky; top:0; z-index:10; margin-bottom:10px }
+  .toolbar-inner{ padding:8px }
+  #home-btn{ order:-1 }
+
+  /* On mobile, avoid scaling dimmed cards to prevent layout shift */
+  .card.is-dim{ transform: none !important; opacity: .6 !important; }
+  /* Expand cover on active card for mobile */
+  .card.is-active .cover-wrap{ block-size: 92px; }
+  .group.is-single .card.is-active .cover-wrap{ block-size: 140px; }
+
+  /* Performance: tone down heavy visual effects on mobile */
+  .toolbar-inner{ backdrop-filter: blur(6px) saturate(1.05); }
+  .card{ box-shadow: 0 10px 28px -18px rgba(0,0,0,.55), 0 1px 0 0 rgba(255,255,255,.03) inset; backdrop-filter: blur(6px) saturate(1.05); }
+  .card::before{ opacity:.28; filter: blur(6px) saturate(1.05); }
+  .card::after{ opacity:.6; }
+  .role{ animation: none !important; }
+  .ava-ring, .ava-ring::after{ animation: none !important; }
+  .firefly{ animation: none !important; opacity:.6; }
+  .group-grid:hover .card{ transition: transform .2s ease, opacity .15s ease, filter .15s ease; }
+}
+
+/* A11y + layout chung */
+.sr-only{ position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+.foot{ font-size:12px; color:var(--muted); text-align:center; opacity:.9 }
+
+/* Canvas nền */
+#bg-canvas{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+.page{ position:relative; z-index:2 }
+
+/* ======= OVERRIDES & NEW THEME (Centering, Border Sweep, Mobile, Classic Light tweak, Sunset) ======= */
+
+/* Ensure cards expand downward; don't cover titles */
+.card{ transform-origin: top center; }
+
+/* Do not nudge upward when grid hovered; dim others slightly */
+.group-grid:hover .card{ transform: scale(.94); opacity:.7; filter:saturate(.9); }
+
+/* Active card: scale only, no translateY */
+.card.is-active{ transform: scale(1.06) !important; z-index:5; opacity:1 !important; filter:none; }
+
+/* Leave breathing space above grid while a card is active */
+.group-grid.has-active{ padding-top:8px; }
+
+/* Make titles/desc topmost to avoid being covered */
+.group-title, .group-desc{ position: relative; z-index: 9; }
+
+/* ===== Center badge + tiêu đề + danh mục ===== */
+.group{ text-align:center; }
+.group-title { margin: 8px auto 6px; text-align:center; }
+.group-desc  { margin: 0 auto 12px; text-align:center; max-width: 720px; }
+.group-grid  { justify-items:center; }
+.role{ display:inline-flex; margin:4px auto 0; } /* badge ở giữa */
+
+/* ===== Classic Light: calmer visuals for readability ===== */
+body[data-theme="light"]:not([data-style="epic"]){
+  --panel:#ffffff; --text:#111827; --muted:#4b5563;
+  --brd:rgba(0,0,0,.08); --glow:rgba(37,99,235,.18);
+}
+body[data-theme="light"]:not([data-style="epic"]) .card{
+  background:var(--panel);
+  border-color:#e5e7eb;
+  box-shadow: 0 10px 28px -18px rgba(0,0,0,.18), 0 1px 0 rgba(0,0,0,.03) inset;
+}
+body[data-theme="light"]:not([data-style="epic"]) .role{
+  background:rgba(37,99,235,.08);
+  color:#1e3a8a;
+  border-color:rgba(37,99,235,.24);
+  animation:none;
+}
+body[data-theme="light"]:not([data-style="epic"]) .quote{
+  background: linear-gradient(180deg, rgba(0,0,0,.02), rgba(0,0,0,.01));
+  border-color:#e5e7eb;
+}
+
+/* ===== Mobile layout optimization ===== */
+@media (max-width: 640px){
+  .group-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
+}
+@media (max-width: 420px){
+  .group-grid{ grid-template-columns: 1fr; gap:10px; }
+  .card{ padding:14px 10px; }
+  .cover-wrap{ height:72px; }
+  /* Single-column small phones: make active cover taller for clarity */
+  .card.is-active .cover-wrap{ block-size: 100px; }
+  .group.is-single .card.is-active .cover-wrap{ block-size: 128px; }
+}
+
+/* Global reduced-motion: disable animations/transitions that can cause jank */
+@media (prefers-reduced-motion: reduce){
+  *{ animation: none !important; transition: none !important; }
+  .card::before, .card::after{ animation: none !important; }
+  .title{ animation: none !important; }
+}
+
+/* ===== Animated bright border around card (sweep) ===== */
+.card{ position:relative; }
+.card::after{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  padding:1.5px;
+  background: conic-gradient(from 0deg, var(--b1), var(--b2), var(--b3), var(--b1));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity:.85; transform: rotate(0turn);
+  animation: none;
+}
+.card:hover::after, .card.is-active::after{ opacity:1; }
+@keyframes borderSweep{ to{ transform: rotate(1turn); } }
+
+/* ===== New Style: SUNSET ===== */
+body[data-style="sunset"]{
+  background: radial-gradient(1100px 700px at 50% 18%, #3b0d11 0%, #120a1a 55%) fixed;
+  --b1:#ff8a00; --b2:#ff3d81; --b3:#a78bfa;
+  --badgeGlow: 0 0 14px rgba(255,138,0,.6), 0 0 36px rgba(255,61,129,.45);
+  --panel: rgba(22,16,30,.6);
+  --text:#f3f4f6; --muted:#c7c9d1;
+  --ring:#ff9f4d; --glow:rgba(255,90,120,.3);
+  --brd:rgba(255,255,255,.12); --brd-2:rgba(255,255,255,.2);
+}
+body[data-style="sunset"] .title{
+  filter: drop-shadow(0 0 16px rgba(255,138,0,.35)) drop-shadow(0 0 28px rgba(255,61,129,.25));
+}
+body[data-style="sunset"] .toolbar-inner{
+  background: linear-gradient(180deg, rgba(42,22,34,.85), rgba(42,22,34,.5));
+}
+body[data-style="sunset"] .card::before{ opacity:.85; }
+body[data-style="sunset"] .role{ color:#fff7ed; }
+
+body[data-theme="light"][data-style="sunset"]{
+  --panel:rgba(255,255,255,.85); --text:#0b1220; --muted:#4b5563;
+  --brd:rgba(0,0,0,.08); --brd-2:rgba(0,0,0,.14);
+}
+
+/* === STOP BORDER ROTATION OVERRIDE === */
+.card::after{ animation: none !important; transform: none !important; }
+body[data-style="epic"] .card::before{ animation: none !important; }
+
+
+/* ===== FIX: Foot trong từng thẻ (links) – bỏ gạch chân + chuẩn layout ===== */
+.details .links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  justify-content: center;
+  margin-top: 6px;
+}
+/* Xoá underline ở mọi trạng thái anchor */
+.details .links a.badge,
+.details .links a.badge:link,
+.details .links a.badge:visited,
+.details .links a.badge:hover,
+.details .links a.badge:focus,
+.details .links a.badge:active {
+  text-decoration: none !important;
+  color: inherit;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Ổn định chiều cao badge để không chồng lên nhau */
+.details .badge {
+  white-space: nowrap;
+  line-height: 1.15;
+}
+.details .badge b {
+  text-decoration: none !important;
+  line-height: 1.15;
+  display: inline-block;
+}
+/* Hover nhẹ nhàng */
+.details .links a.badge:hover {
+  background: rgba(255,255,255,.12);
+  transform: translateY(-2px);
+}
+
+/* Footer trang – nếu có link thì cũng bỏ underline */
+.foot a,
+.foot a:link,
+.foot a:visited,
+.foot a:hover,
+.foot a:focus,
+.foot a:active {
+  text-decoration: none !important;
+  color: inherit;
+  font-weight: 600;
+}
+.foot a:hover { color: var(--b1); }
+
+
+/* ==== STRONG: remove underline inside card foot links (all states, including inner <b>) ==== */
+.details .links a,
+.details .links a:link,
+.details .links a:visited,
+.details .links a:hover,
+.details .links a:focus,
+.details .links a:active {
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+  text-decoration-thickness: 0 !important;
+  color: inherit;
+  outline: none;
+}
+.details .links a b,
+.details .links a i {
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+}
+
+/* Stable layout for links row */
+.details .links{ display:flex; flex-wrap:wrap; gap:10px 12px; justify-content:center; }
+.details .links .badge{ align-items:center; line-height:1.15; white-space:nowrap; max-width:100%; }
+.details .links .badge b{ display:inline-block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 14ch; }
+
+@media (max-width: 480px){
+  .details .links{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px; }
+  .details .links .badge{ width:100%; justify-content:center; }
+}
+@media (max-width: 360px){
+  .details .links{ grid-template-columns: 1fr; }
+}
+
+/* ===== Gravity overlay (help text) ===== */
+#canvas { position:fixed; left:0; top:0; width:100vw; height:100vh; z-index:0; }
+#canvas-help {
+  position: fixed;
+  left: 0; top: 0; z-index: 3;
+  background: rgba(0,0,0,.5);
+  color:#fff;
+  font-family: sans-serif;
+  font-size: 14px; line-height: 1.5;
+  margin: 0; padding: 20px 30px;
+  user-select:none; pointer-events:none;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.12);
+}
+/* Only show help while style=gravity */
+#canvas-help{ display:none !important; }
+
+
+/* ===== CLASSIC STYLE: vivid glass + layered gradients + subtle grain ===== */
+body[data-style="classic"]{
+  --b1:#4f8cff; --b2:#22d3ee; --b3:#a78bfa;
+  --panel: rgba(17,24,39,.52);
+  background:
+    radial-gradient(1200px 800px at 12% 10%, #0b1530 0%, transparent 55%),
+    radial-gradient(1200px 800px at 88% 20%, #1b0f2a 0%, transparent 60%),
+    linear-gradient(180deg, #080b14 0%, #05080f 100%) fixed;
+}
+/* Grain overlay (pure CSS, no image) */
+body[data-style="classic"]::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:1;
+  background-image:
+    radial-gradient(2px 2px at 20% 20%, rgba(255,255,255,.04) 50%, transparent 51%),
+    radial-gradient(2px 2px at 40% 80%, rgba(255,255,255,.04) 50%, transparent 51%),
+    radial-gradient(2px 2px at 70% 30%, rgba(255,255,255,.03) 50%, transparent 51%),
+    radial-gradient(2px 2px at 90% 60%, rgba(255,255,255,.03) 50%, transparent 51%);
+  mix-blend-mode: overlay;
+  opacity:.35;
+}
+/* Panels in Classic: clearer glass */
+body[data-style="classic"] .card{
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
+  backdrop-filter: blur(12px) saturate(1.1);
+  border-color: rgba(255,255,255,.10);
+}
+
+/* ===== GRAVITY STYLE: tweak palette + deepen vignette ===== */
+body[data-style="gravity"]{
+  --panel: rgba(15,18,30,.60);
+  background: radial-gradient(900px 600px at 50% 0%, #151826 0%, #0b0f1a 55%) fixed;
+  --text:#eaf2ff; --muted:#c2c9d6; --ring:#91ddff; --glow:rgba(96,165,250,.28);
+}
+/* Help panel aesthetic */
+#canvas-help{ z-index:2; }
+#canvas{ position:fixed; inset:0; z-index:0; display:block; }
+
+/* ===== TITLE SUPER EFFECTS ===== */
+.title-wrap{ perspective:800px; }
+.title{
+  position:relative; transform-style:preserve-3d; will-change: filter, transform;
+  text-shadow: 0 4px 22px rgba(37,99,235,.28), 0 1px 0 rgba(255,255,255,.06);
+}
+/* moving shine */
+.title::after{ content:none !important }
+@keyframes titleShine{ 0%{ transform: translateZ(20px) skewX(-12deg) translateX(-120%)} 60%,100%{ transform: translateZ(20px) skewX(-12deg) translateX(220%)} }
+/* soft hue cycle */
+@keyframes titleHue{ 0%{ filter:hue-rotate(0deg)} 100%{ filter:hue-rotate(360deg)} }
+.title{ animation: titleGlow 2.5s ease-in-out infinite, titleHue 24s linear infinite; }
+
+/* ===== UI Smoothness ===== */
+.card, .cover, .ava, .role{ will-change: transform, filter, background, box-shadow; }
+.group-grid:hover .card{ transition: transform .28s cubic-bezier(.22,1,.36,1), opacity .18s ease, filter .2s ease; }
+.card.is-active{ transition: transform .28s cubic-bezier(.22,1,.36,1), box-shadow .24s ease; }
+
+/* ===== QUOTES: crossfade animation ===== */
+.quote{ position:relative; overflow:hidden; }
+
+/* ===== GRAVITY STYLE: higher contrast palette and backdrop ===== */
+body[data-style="gravity"]{
+  --b1:#01a2a6; --b2:#37d8c2; --b3:#bdf271;
+  --text:#f2f7ff; --muted:#d2d9e6; --ring:#9fe8ff; --glow:rgba(55,216,194,.32);
+  --panel: rgba(7,11,18,.68);
+  background:
+    radial-gradient(1200px 800px at 50% -10%, rgba(1,162,166,.15), transparent 55%),
+    radial-gradient(900px 600px at 10% 10%, rgba(189,242,113,.10), transparent 45%),
+    linear-gradient(180deg, #0a0f19 0%, #0a0e18 100%) fixed;
+}
+/* Gravity: enforce high-contrast text everywhere */
+body[data-style="gravity"],
+body[data-style="gravity"] .app,
+body[data-style="gravity"] .container{ color: var(--text); }
+body[data-style="gravity"] .muted,
+body[data-style="gravity"] .subtitle,
+body[data-style="gravity"] .desc,
+body[data-style="gravity"] .badge small{ color: var(--muted); opacity:.96; }
+body[data-style="gravity"] .card .name,
+body[data-style="gravity"] .card .role-name,
+body[data-style="gravity"] .details .badge b,
+body[data-style="gravity"] .details .bio,
+body[data-style="gravity"] .quote{ color: var(--text); }
+body[data-style="gravity"] a{ color: var(--text); }
+body[data-style="gravity"] a:hover{ color:#ffffff; text-shadow: 0 0 10px rgba(159,232,255,.35); }
+body[data-style="gravity"] .toolbar .btn,
+body[data-style="gravity"] .toolbar label,
+body[data-style="gravity"] .toolbar .select{ color: var(--text); }
+/* Improve contrast for badges and details in Gravity */
+body[data-style="gravity"] .badge{ background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.22); color: var(--text); }
+body[data-style="gravity"] .badge i{ opacity:.9 }
+body[data-style="gravity"] .details .bio{ color: var(--text); opacity:.92 }
+body[data-style="gravity"] .details .links .badge b{ color: var(--text); }
+/* Card viền & glow ăn theo palette Gravity */
+body[data-style="gravity"] .card{ background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.04)); border-color: rgba(255,255,255,.1); }
+body[data-style="gravity"] .card::before{ opacity:.5; filter: blur(8px) saturate(1.05); }
+/* Cover gradient đổi sang teal/cyan */
+body[data-style="gravity"] .cover-wrap{ background: linear-gradient(90deg, rgba(1,162,166,.35), rgba(55,216,194,.35)); }
+/* Help panel aesthetic */
+#canvas-help{ z-index:2; }
+#canvas{ position:fixed; inset:0; z-index:0; display:block; }
+body[data-style="gravity"] .role,
+body[data-style="gravity"] .role[data-role]{
+  background: linear-gradient(90deg, var(--b1), var(--b2));
+  color: #032b2c;
+  border-color: rgba(255,255,255,.18);
+  box-shadow: 0 0 14px 2px rgba(55,216,194,.35), 0 0 28px rgba(189,242,113,.25);
+  animation: none;
+}
+
+/* Mobile tuning riêng cho Gravity */
+@media (max-width: 640px){
+  body[data-style="gravity"] .group-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+}
+@media (max-width: 420px){
+  body[data-style="gravity"] .group-grid{ grid-template-columns: 1fr; gap: 10px; }
+  body[data-style="gravity"] .card.is-active .cover-wrap{ block-size: 100px; }
+}
+
+
+/* ===== Title shine confined inside glyphs ===== */
+.title{
+  display:inline-block;
+  background:
+    conic-gradient(from 120deg at 50% 50%, var(--b1), var(--b2), var(--b3), var(--b1)) 50% 50%/auto auto no-repeat,
+    linear-gradient(120deg, transparent 0%, rgba(255,255,255,.18) 12%, transparent 24%) 0 0/220% 100% no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: titleHue 22s linear infinite, shineSweep 3.8s cubic-bezier(.22,1,.36,1) infinite;
+  overflow:hidden;
+}
+.title::after{ content:none !important; } /* bỏ glint cũ vượt viền */
+@keyframes shineSweep{
+  0%{ background-position: 50% 50%, -140% 0 }
+  60%,100%{ background-position: 50% 50%, 140% 0 }
+}
+
+
+/* ===== TITLE: soft neon edge glow, style-aware ===== */
+.title{
+  overflow: visible; /* avoid cutting glow */
+  position: relative;
+  /* gradient fill + internal shine sweep (clipped to glyphs) */
+  background:
+    conic-gradient(from 120deg at 50% 50%, var(--b1), var(--b2), var(--b3), var(--b1)) 50% 50%/auto auto no-repeat,
+    linear-gradient(120deg, transparent 0%, rgba(255,255,255,.20) 14%, transparent 26%) 0 0/220% 100% no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: titleHue 20s linear infinite, shineSweep 4s cubic-bezier(.22,1,.36,1) infinite;
+  /* soft, layered glow around glyphs */
+  text-shadow:
+    0 0 6px var(--title-glow-1, rgba(96,165,250,.45)),
+    0 0 16px var(--title-glow-2, rgba(34,211,238,.35)),
+    0 0 34px var(--title-glow-3, rgba(167,139,250,.28));
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,.05));
+}
+/* style-specific glow palettes */
+body[data-style="gravity"] .title{
+  --title-glow-1: rgba(55,216,194,.55);
+  --title-glow-2: rgba(189,242,113,.45);
+  --title-glow-3: rgba(1,162,166,.35);
+}
+body[data-style="classic"] .title{
+  --title-glow-1: rgba(96,165,250,.55);
+  --title-glow-2: rgba(34,211,238,.45);
+  --title-glow-3: rgba(167,139,250,.35);
+}
+body[data-style="epic"] .title{
+  --title-glow-1: rgba(167,139,250,.6);
+  --title-glow-2: rgba(34,211,238,.5);
+  --title-glow-3: rgba(244,114,182,.45);
+}
+body[data-style="sunset"] .title{
+  --title-glow-1: rgba(255,138,0,.55);
+  --title-glow-2: rgba(255,61,129,.45);
+  --title-glow-3: rgba(167,139,250,.35);
+}
+
+
+/* ===== Mobile: force single column for readability ===== */
+@media (max-width: 640px){
+  .group-grid{ grid-template-columns: 1fr !important; gap: 12px !important; }
+  .group.is-single .group-grid{ grid-template-columns: 1fr !important; }
+}
+
+
+/* ===== Avatar orbiting sparks (upgrade) ===== */
+.ava-orbit{
+  position:absolute; inset:-16px; border-radius:999px; pointer-events:none; z-index:3;
+  animation: orbit 8s linear infinite; mix-blend-mode: screen;
+}
+.ava-orbit.o2{ inset:-24px; animation-duration: 12s; animation-direction: reverse; opacity:.85; }
+.ava-orbit .orb{
+  position:absolute; top:50%; right:-5px; width:8px; height:8px; transform: translateY(-50%);
+  border-radius:999px;
+  background: radial-gradient(circle, var(--orb-core, #fff) 0%, rgba(255,255,255,.85) 50%, rgba(255,255,255,0) 70%);
+  box-shadow:
+    0 0 12px var(--orb-glow-1, rgba(125,211,252,.9)),
+    0 0 26px var(--orb-glow-2, rgba(167,139,250,.65));
+  filter: saturate(1.15);
+}
+@keyframes orbit{ to{ transform: rotate(1turn) } }
+/* Per-style orb colors */
+body[data-style="classic"] .ava-orbit .orb{
+  --orb-core:#e0f2fe; --orb-glow-1: rgba(96,165,250,.95); --orb-glow-2: rgba(34,211,238,.55);
+}
+body[data-style="gravity"] .ava-orbit .orb{
+  --orb-core:#e8fff3; --orb-glow-1: rgba(55,216,194,.95); --orb-glow-2: rgba(189,242,113,.55);
+}
+body[data-style="epic"] .ava-orbit .orb{
+  --orb-core:#fff1f9; --orb-glow-1: rgba(34,211,238,.95); --orb-glow-2: rgba(244,114,182,.65);
+}
+body[data-style="sunset"] .ava-orbit .orb{
+  --orb-core:#fff0e5; --orb-glow-1: rgba(255,138,0,.95); --orb-glow-2: rgba(255,61,129,.6);
+}
+
+
+/* === Classic: pin ALL background layers to viewport & disable canvases === */
+body[data-style="classic"]{
+  background-attachment: fixed, fixed, fixed; /* each layer fixed to avoid seam */
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-position: 12% 10%, 88% 20%, center top;
+}
+/* Classic: ensure dynamic canvases are hidden for a truly static background */
+body[data-style="classic"] #bg-canvas,
+body[data-style="classic"] #canvas{ display:none !important; }
+
+/* Breathing gap below title+quote */
+.hero-gap{ height: clamp(56px, 12vh, 160px); }
+
+/* === Touch devices: kill hover-heavy effects to avoid jank === */
+@media (hover: none), (pointer: coarse){
+  /* Do not dim or transform other cards when grid is hovered (tap on touch) */
+  .group-grid:hover .card{ transform:none !important; opacity:1 !important; filter:none !important; }
+  /* No transform/filter/shadow elevation on card hover/tap */
+  .card:hover, .card:focus{ transform:none !important; filter:none !important; box-shadow:none !important; }
+  /* Keep transitions minimal and cheap */
+  .card{ transition: opacity .12s ease !important; backdrop-filter:none !important; }
+  .toolbar-inner{ backdrop-filter:none !important; }
+}

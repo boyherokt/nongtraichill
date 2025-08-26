@@ -1,0 +1,896 @@
+<html lang="vi">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="content-language" content="vi" />
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Piano 3D - Vùng Đất Chill</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+        <script src="js/three.js"></script>
+
+        <script src="js/OrbitAndPanControls.js"></script>
+        <script src="js/ColladaLoader.js"></script>
+
+        <!-- extras -->
+        <script src="js/base64binary.js" type="text/javascript"></script>
+
+        <script src="js/MIDI/AudioDetect.js" type="text/javascript"></script>
+        <script src="js/MIDI/LoadPlugin.js" type="text/javascript"></script>
+        <script src="js/MIDI/Plugin.js" type="text/javascript"></script>
+        <script src="js/MIDI/Player.js" type="text/javascript"></script>
+        <script src="js/MIDI/Loader.js" type="text/javascript"></script>
+
+        <script src="js/Window/DOMLoader.script.js" type="text/javascript"></script>
+
+        <!-- jasmid package -->
+        <script src="js/jasmid/stream.js"></script>
+        <script src="js/jasmid/midifile.js"></script>
+        <script src="js/jasmid/replayer.js"></script>
+
+        <!-- <script type="text/javascript" src="js/dat.gui.js"></script> -->
+        <!-- Vietnamese-friendly fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans:wght@400;600;700&display=swap&subset=latin,vietnamese" rel="stylesheet">
+
+        <style>
+            html, body { height: 100%; }
+            canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+            body
+            {
+                color: #e6e6e6;
+                font-family: 'Segoe UI', Tahoma, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Inter', 'Arial Unicode MS', sans-serif;
+                font-size:13px;
+                text-align:center;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+
+                /* Modern layered dark gradient background */
+                background: 
+                    radial-gradient(800px circle at 75% 10%, #142a4a 0%, rgba(20,42,74,0) 45%),
+                    radial-gradient(700px circle at 20% 85%, #0f3b2e 0%, rgba(15,59,46,0) 50%),
+                    linear-gradient(180deg, #0b0f14, #0a0a0a);
+                background-attachment: fixed;
+                margin: 0px;
+                overflow: hidden;
+            }
+
+            #info
+            {
+                position: absolute;
+                top: 0px; width: 100%;
+                padding: 5px;
+                z-index: 5;
+            }
+
+            a
+            {
+                color: #1e83ff;
+            }
+
+            /* Custom control bar (new UI) */
+            #controlBar {
+                position: fixed;
+                top: 12px;
+                left: 12px;
+                right: 12px;
+                z-index: 2000;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+                flex-wrap: wrap;
+                gap: 12px;
+                padding: 10px 12px;
+                background: rgba(20,20,20,0.6);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 12px;
+            }
+            #controlBar .group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+            #controlBar label { font-weight: 600; color: #fff; opacity: .95; white-space: nowrap; }
+            #controlBar select,
+            #controlBar input[type="color"],
+            #controlBar input[type="range"],
+            #controlBar button {
+                height: 36px;
+                border-radius: 10px;
+                background: rgba(255,255,255,0.08);
+                border: 1px solid rgba(255,255,255,0.12);
+                color: #fff;
+                padding: 6px 10px;
+                font-family: inherit;
+            }
+            /* Allow select to shrink on narrow widths without pushing others off */
+            #controlBar select { min-width: 0; flex: 1 1 200px; max-width: 420px; width: 100%; }
+            /* Make the first group take available space but allow wrapping */
+            #grpSong { flex: 1 1 500px; min-width: 0; }
+            #grpSong button { flex: 0 0 auto; }
+            #grpDisplay, #grpOctave { flex: 0 0 auto; min-width: 0; }
+            #controlBar button { cursor: pointer; font-weight: 700; }
+            #btnPlay { background: linear-gradient(180deg, rgba(60,189,120,0.9), rgba(36,160,95,0.9)); border-color: rgba(0,0,0,0.25); }
+            #btnStop { background: linear-gradient(180deg, rgba(232,86,86,0.9), rgba(197,55,55,0.9)); border-color: rgba(0,0,0,0.28); }
+            /* Octave select fits compactly; override generic select sizing */
+            #controlBar #octaveSelect {
+                min-width: 0;
+                height: 36px; /* match color picker height on desktop */
+                padding: 6px 10px;
+                flex: 0 0 auto;
+                width: auto;
+                max-width: none;
+                /* Match song select background/border for consistent look */
+                background: rgba(0,0,0,0.3);
+                border-color: rgba(255,255,255,0.4);
+                color: #fff;
+            }
+            /* Dark dropdown options for octave select */
+            #octaveSelect option { background: #1b1b1b; color: #fff; }
+            /* Timeline (seek bar) */
+            #grpTimeline { flex: 2 1 320px; width: 100%; min-width: 220px; }
+            #timelineBar { display: flex; align-items: center; gap: 10px; width: 100%; }
+            #timeCurrent, #timeTotal { font-variant-numeric: tabular-nums; min-width: 52px; text-align: center; opacity: .95; }
+            #timeSeek { flex: 1 1 auto; height: 8px; padding: 0; background: transparent; cursor: pointer; }
+            /* Improve range hit area on touch */
+            #timeSeek { -webkit-appearance: none; appearance: none; }
+            #timeSeek::-webkit-slider-runnable-track { height: 8px; background: rgba(255,255,255,0.18); border-radius: 999px; }
+            #timeSeek::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1e83ff; margin-top: -5px; box-shadow: 0 0 0 4px rgba(30,131,255,0.25); }
+            #timeSeek::-moz-range-track { height: 8px; background: rgba(255,255,255,0.18); border-radius: 999px; }
+            #timeSeek::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #1e83ff; border: none; box-shadow: 0 0 0 4px rgba(30,131,255,0.25); }
+            /* Ensure UI never clips when resizing */
+            #controlBar { overflow: visible; }
+            /* Footer */
+            #footerChill {
+                position: fixed;
+                left: max(12px, env(safe-area-inset-left));
+                right: max(12px, env(safe-area-inset-right));
+                bottom: 12px;
+                z-index: 2000;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 10px 12px;
+                background: rgba(20,20,20,0.6);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 12px;
+                color: #fff;
+                padding-bottom: calc(10px + env(safe-area-inset-bottom));
+            }
+            #footerChill .title { font-weight: 800; letter-spacing: .5px; }
+            #footerChill .sub { opacity: .9; }
+            #btnBackParent {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                height: 40px;
+                border-radius: 10px;
+                background: linear-gradient(180deg, rgba(30,131,255,0.9), rgba(16,102,212,0.9));
+                border: 1px solid rgba(0,0,0,0.28);
+                color: #fff; font-weight: 700; padding: 8px 14px; cursor: pointer; text-decoration: none;
+                box-shadow: 0 6px 16px rgba(16,102,212,0.35);
+                -webkit-tap-highlight-color: rgba(255,255,255,0.1);
+                touch-action: manipulation;
+                user-select: none;
+                box-sizing: border-box;
+                max-width: 100%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            #btnBackParent::before { content: none; }
+            #btnBackParent:active { transform: translateY(1px); }
+            @media (max-width: 640px) {
+                #footerChill {
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: space-between;
+                    text-align: left;
+                    gap: 8px;
+                    padding: 6px 8px;
+                    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+                    bottom: 6px;
+                    border-radius: 10px;
+                }
+                /* Make left text block flex and truncate neatly */
+                #footerChill > div:first-child { flex: 1 1 auto; min-width: 0; }
+                #footerChill .title { font-size: 12px; }
+                #footerChill .sub {
+                    font-size: 11px;
+                    opacity: .85;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                #btnBackParent {
+                    width: auto;
+                    max-width: 42%;
+                    height: 32px;
+                    font-size: 12px;
+                    padding: 6px 10px;
+                    justify-content: center;
+                    align-self: center;
+                    box-shadow: 0 3px 8px rgba(16,102,212,0.24);
+                }
+            }
+            /* Make song selector easier to read */
+            #songSelect {
+                font-weight: 700;
+                letter-spacing: .2px;
+                color: #fff;
+                background: rgba(0,0,0,0.3);
+                border-color: rgba(255,255,255,0.4);
+                height: 44px;
+                padding: 8px 12px;
+            }
+            /* Prevent long titles from pushing layout; show ellipsis */
+            #songSelect { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            /* Collapse behavior */
+            #controlBar.collapsed { padding: 6px 10px; gap: 6px; }
+            #controlBar.collapsed .group:not(#grpActions) { display: none; }
+            #songSelect:focus {
+                outline: 2px solid #1e83ff;
+                outline-offset: 1px;
+            }
+            /* Option styling (supported in most modern browsers) */
+            #songSelect option {
+                background: #1b1b1b;
+                color: #fff;
+                padding: 8px 10px;
+            }
+            /* Collapse icon button */
+            #grpActions { margin-left: auto; flex: 0 0 auto; }
+            #btnCollapse {
+                width: 40px; height: 40px;
+                padding: 0;
+                display: inline-flex; align-items: center; justify-content: center;
+                border-radius: 999px;
+                background: rgba(255,255,255,0.08);
+                border: 1px solid rgba(255,255,255,0.12);
+                color: #fff;
+            }
+            #btnCollapse svg { width: 22px; height: 22px; transition: transform .2s ease; }
+            /* When collapsed, icon points down */
+            #controlBar.collapsed #btnCollapse svg { transform: rotate(180deg); }
+
+            @media (max-width: 640px) {
+                /* Use row layout with wrap so we can place display + octave together */
+                #controlBar { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px; }
+                #controlBar .group { justify-content: flex-start; }
+                /* Big sections take full row */
+                #grpSong, #grpTimeline, #grpActions { flex: 1 1 100%; }
+                /* Keep color + octave side-by-side */
+                #grpDisplay, #grpOctave { flex: 0 0 auto; }
+                /* Inputs same visual height on mobile */
+                #colorPicker, #octaveSelect { height: 32px; }
+                /* Song select remains large and full-width */
+                #controlBar select { width: 100%; min-width: 0; }
+                #octaveSelect { width: auto; flex: 0 0 auto; }
+                /* Buttons full-width for easy tapping */
+                #controlBar button { width: 100%; height: 44px; }
+                #songSelect { height: 48px; }
+                #grpTimeline { width: 100%; }
+                /* Keep collapse button compact and visible on mobile */
+                #grpActions { align-self: flex-end; }
+                #btnCollapse { width: 36px; height: 36px; }
+            }
+
+            /* Medium screens: force groups to stack predictably to avoid clipping */
+            @media (max-width: 1024px) {
+                /* Keep color + octave side-by-side; only stack big groups */
+                #grpSong, #grpTimeline, #grpActions { flex: 1 1 100%; }
+                #grpActions { align-self: flex-end; }
+            }
+
+            /* Compact layout slightly below 900px and hide non-essential labels */
+            @media (max-width: 900px) {
+                #controlBar { gap: 10px; }
+                #controlBar .group { gap: 6px; }
+                /* Hide labels to save space; controls already have aria-labels */
+                #grpDisplay label, #grpOctave label { display: none; }
+                /* Make timeline take full row to prevent clipping */
+                #grpTimeline { flex: 1 1 100%; min-width: 0; }
+            }
+        
+        </style>    
+    </head>
+    <body>
+        <!-- New Control Bar -->
+        <div id="controlBar" role="region" aria-label="Điều khiển phát nhạc">
+            <div class="group" id="grpSong">
+                <label for="songSelect">Bài hát</label>
+                <select id="songSelect" aria-label="Chọn bài hát"></select>
+                <button id="btnPlay" aria-label="Phát">Phát</button>
+                <button id="btnStop" aria-label="Dừng">Dừng</button>
+            </div>
+            <div class="group" id="grpDisplay">
+                <label for="colorPicker">Màu nốt</label>
+                <input id="colorPicker" type="color" value="#ff0000" aria-label="Chọn màu nốt" />
+            </div>
+            <div class="group" id="grpOctave">
+                <label for="octaveSelect">Quãng</label>
+                <select id="octaveSelect" aria-label="Chọn quãng">
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select>
+            </div>
+            <div class="group" id="grpTimeline" aria-label="Thanh thời gian">
+                <div id="timelineBar">
+                    <span id="timeCurrent">0:00</span>
+                    <input id="timeSeek" type="range" min="0" max="0" step="0.01" value="0" aria-label="Tua thời gian" />
+                    <span id="timeTotal">0:00</span>
+                </div>
+            </div>
+            <div class="group" id="grpActions">
+                <button id="btnCollapse" aria-label="Thu gọn" title="Thu gọn/Mở rộng" type="button">
+                    <!-- Chevron-up icon (default expanded state) -->
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                        <path d="M18 15l-6-6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <script type="text/javascript">
+
+            // Begin MIDI loader widger
+            MIDI.loader = new widgets.Loader({
+                message: "Loading: Soundfont..."
+            });
+            
+            function smoothstep(a,b,x)
+            {
+                if( x<a ) return 0.0;
+                if( x>b ) return 1.0;
+                var y = (x-a)/(b-a);
+                return y*y*(3.0-2.0*y);
+            }
+            function mix(a,b,x)
+            {
+                return a + (b - a)*Math.min(Math.max(x,0.0),1.0);
+            }            
+
+            var controls = new function()
+            {
+                this.key_attack_time = 9.0;
+                this.key_max_rotation = 0.72;
+                this.octave = 2;
+                this.song = "game_of_thrones.mid";
+                this.noteOnColor = [ 255, 0, 0, 1.0 ];
+                this.play = function()
+                    {
+                        MIDI.Player.resume();
+                    };
+                this.stop = function()
+                    {
+                        MIDI.Player.stop();
+                    }
+            };
+            
+
+            var keyState = Object.freeze ({unpressed: {}, note_on: {}, pressed:{}, note_off:{} });
+
+
+            var scene = new THREE.Scene();
+            var camera = new THREE.PerspectiveCamera(30, window.innerWidth/window.innerHeight, 2.0, 5000);
+
+            var keys_down = [];
+            var keys_obj = [];
+            // Sustain settings (applied to both keyboard and MIDI playback)
+            var AUTO_SUSTAIN = true;     // bật/tắt tự ngân
+            var SUSTAIN_MS = 700;        // thời lượng ngân (ms)
+            // Track pending sustain timeouts per MIDI note for keyboard
+            var sustainTO = {}; // midiNote -> timeout id
+    
+            var renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+            renderer.setSize(window.innerWidth, window.innerHeight);          
+            renderer.shadowMapEnabled = true;  
+            renderer.shadowMapSoft = true;
+            renderer.shadowMapType = THREE.PCFSoftShadowMap;
+            renderer.gammaInput = true;
+            renderer.gammaOutput = true;
+            /* Transparent clear so CSS gradient shows through */
+            renderer.setClearColor(0x000000, 0);
+            renderer.physicallyBasedShading = true;
+
+            document.body.appendChild(renderer.domElement);
+
+            var material = new THREE.MeshLambertMaterial( { color: 0x606060} ) 
+
+            // Brighter ground plane to improve visibility under the piano
+            floor = new THREE.Mesh( new THREE.PlaneGeometry( 8000, 8000 ), new THREE.MeshBasicMaterial( { color: 0x202a36 } ) );
+            floor.rotation.x = - 90 * ( Math.PI / 180 );
+            floor.position.y = -0.45;
+            floor.receiveShadow = true;
+            floor.castShadow = true;
+            scene.add( floor );
+            // Slightly lighter fog to lift the base tone
+            scene.fog = new THREE.Fog( 0x101820, 40, 80 );
+
+            noteOnColor = new THREE.Color().setRGB(controls.noteOnColor[0]/256.0, controls.noteOnColor[1]/256.0, controls.noteOnColor[2]/256.0);
+
+            init_lights();
+
+            var loader = new THREE.ColladaLoader();
+
+            loader.load( 'obj/piano.dae', prepare_scene );
+
+            camera.position.x = -2.77;
+            camera.position.z = 10.04;
+            camera.position.y = 5.51;
+
+            var cameraControls = new THREE.OrbitAndPanControls(camera, renderer.domElement);
+            cameraControls.target.set(4.5,0,0);
+
+            var clock = new THREE.Clock();
+
+            function on_window_resize()
+            {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+
+                renderer.setSize( window.innerWidth, window.innerHeight );
+            }    
+
+            function init_lights()
+            {
+                //var spotlight = new THREE.SpotLight(0xffffff);
+                var spotlight = new THREE.DirectionalLight(0xffffff);
+                
+                spotlight.position.set(1.0,2.4,-7.5);
+                spotlight.target.position.set(6.0,-6,7);
+                spotlight.shadowCameraVisible = false;
+                spotlight.shadowDarkness = 0.75;
+                spotlight.intensity = 1;
+                spotlight.castShadow = true;
+                spotlight.shadowMapWidth = 2048;
+                spotlight.shadowMapHeight = 2048;
+
+                spotlight.shadowCameraNear = 5.0;
+                spotlight.shadowCameraFar = 20.0;
+                spotlight.shadowBias = 0.0025;
+                
+                spotlight.shadowCameraLeft = -8.85;
+                spotlight.shadowCameraRight = 5.5;
+                spotlight.shadowCameraTop = 4;
+                spotlight.shadowCameraBottom = 0;                
+                scene.add(spotlight);
+                
+                var light = new THREE.DirectionalLight( 0xddffff, 0.5 );
+                light.position.set( 1, 1, 1 ).normalize();
+                scene.add( light );
+
+                var light = new THREE.DirectionalLight( 0xff5555, 0.5 );
+                light.position.set( -1, -1, -1 ).normalize();
+                scene.add( light );
+            }
+
+            function prepare_scene( collada )
+            {
+                collada.scene.traverse(initialize_keys);                
+                scene.add(collada.scene);                
+            }
+
+            function initialize_keys( obj)
+            {
+                keys_obj.push(obj);                
+                obj.rotation.x = -Math.PI/4.0;
+                obj.rotation.y = 0;
+                obj.rotation.z = 0;
+                obj.keyState = keyState.unpressed;
+                obj.clock = new THREE.Clock(false);
+                obj.castShadow = true;
+                obj.receiveShadow = true;
+
+                // only add meshes in the material redefinition (to make keys change their color when pressed)
+                if (obj instanceof THREE.Mesh)
+                {
+                    old_material = obj.material;
+                    obj.material = new THREE.MeshPhongMaterial( { color:old_material.color} );
+                    obj.material.shininess = 35.0;
+                    obj.material.specular = new THREE.Color().setRGB(0.25, 0.25, 0.25);;
+                    obj.material.note_off = obj.material.color.clone();
+                   
+                }
+
+            }
+
+            function key_status (keyName, status)
+            {
+                var obj = scene.getObjectByName(keyName, true);
+                if (obj != undefined)
+                {                 
+                    obj.clock.start();
+                    obj.clock.elapsedTime = 0;
+                    obj.keyState = status;
+                }
+            }
+
+            function frame()
+            {
+                requestAnimationFrame(frame);
+
+                var delta = clock.getDelta();
+                
+                update(delta);
+
+                render(delta);
+
+            }
+            function update_key( obj, delta )
+            {
+                if (obj.keyState == keyState.note_on)
+                {
+                    obj.rotation.x = mix(-Math.PI/4.0, -controls.key_max_rotation, smoothstep(0.0, 1.0, controls.key_attack_time*obj.clock.getElapsedTime()));
+                    if (obj.rotation.x >= -controls.key_max_rotation)
+                    {
+                        obj.keyState = keyState.pressed;
+                        obj.clock.elapsedTime = 0;
+                    }                    
+                    obj.material.color = noteOnColor;
+                }
+                else if (obj.keyState == keyState.note_off)
+                {
+                    obj.rotation.x = mix(-controls.key_max_rotation, -Math.PI/4.0, smoothstep(0.0, 1.0, controls.key_attack_time*obj.clock.getElapsedTime()));
+                    if (obj.rotation.x <= -Math.PI/4.0)
+                    {
+                        obj.keyState = keyState.unpressed;
+                        obj.clock.elapsedTime = 0;
+                    }
+                    obj.material.color = obj.material.note_off;
+                }
+            }
+
+            function update( delta )
+            {
+                cameraControls.update(delta);
+                for(i in keys_obj)
+                {
+                    update_key(keys_obj[i], delta);
+                }
+
+            }
+        
+            function render( delta )
+            {                
+                renderer.render(scene, camera);
+            };
+
+            frame();
+
+            function keyCode_to_note( keyCode)
+            {
+                var note = -1;
+                //-----------------------------------
+                if(   keyCode==90 )  note= 0; // C 0
+                if(   keyCode==83 )  note= 1; // C#0
+                if(   keyCode==88 )  note= 2; // D 0
+                if(   keyCode==68 )  note= 3; // D#0
+                if(   keyCode==67 )  note= 4; // E 0
+                if(   keyCode==86 )  note= 5; // F 0
+                if(   keyCode==71 )  note= 6; // F#0
+                if(   keyCode==66 )  note= 7; // G 0
+                if(   keyCode==72 )  note= 8; // G#0
+                if(   keyCode==78 )  note= 9; // A 0
+                if(   keyCode==74 )  note=10; // A#0
+                if(   keyCode==77 )  note=11; // B 0
+                if(   keyCode==188 ) note=12; // C 0
+
+                //-----------------------------------
+                if(   keyCode==81 )  note=12; // C 1
+                if(   keyCode==50 )  note=13; // C#1
+                if(   keyCode==87 )  note=14; // D 1
+                if(   keyCode==51 )  note=15; // D#1
+                if(   keyCode==69 )  note=16; // E 1
+                if(   keyCode==82 )  note=17; // F 1
+                if(   keyCode==53 )  note=18; // F#1
+                if(   keyCode==84 )  note=19; // G 1
+                if(   keyCode==54 )  note=20; // G#1
+                if(   keyCode==89 )  note=21; // A 1
+                if(   keyCode==55 )  note=22; // A#1
+                if(   keyCode==85 )  note=23; // B 1
+                //-----------------------------------
+                if(   keyCode==73 )  note=24; // C 2
+                if(   keyCode==57 )  note=25; // C#2
+                if(   keyCode==79 )  note=26; // D 2
+                if(   keyCode==48 )  note=27; // D#2
+                if(   keyCode==80 )  note=28; // E 2
+                if(   keyCode==219 ) note=29; // F 2
+                if(   keyCode==187 ) note=30; // F#2
+                if(   keyCode==221 ) note=31; // G 2
+                //-----------------------------------
+
+                if( note == -1 ) return -1;
+
+                return ("_" + (note + controls.octave*12));
+
+            }
+
+            window.onkeydown = function(ev)
+            {
+                if (keys_down[ev.keyCode] != true)
+                {
+                    var noteName = keyCode_to_note(ev.keyCode);
+                    if (noteName != -1)
+                    {
+                        key_status(noteName, keyState.note_on);
+                        keys_down[ev.keyCode] = true;                     
+                        // cancel pending sustain-off if any for this midi note
+                        var midiNote = parseInt(noteName.substr(1))+21;
+                        if (sustainTO[midiNote]) { clearTimeout(sustainTO[midiNote]); delete sustainTO[midiNote]; }
+
+                        var delay = 0; // seconds
+                        var velocity = 127; // how hard the note hits
+                        MIDI.setVolume(0, 127);   
+                        MIDI.noteOn(0, midiNote, velocity, delay);
+                    }
+                }            
+            }            
+
+            window.onkeyup = function(ev)
+            {
+                if (keys_down[ev.keyCode] == true)
+                {
+                    var noteName = keyCode_to_note(ev.keyCode);
+                    keys_down[ev.keyCode] = false;
+                    var delay = 0; // seconds
+                    var midiNote = parseInt(noteName.substr(1))+21;
+                    var sendOff = function(){
+                        key_status(noteName, keyState.note_off);
+                        MIDI.setVolume(0, 127);
+                        MIDI.noteOff(0, midiNote, delay + 0.08);
+                        delete sustainTO[midiNote];
+                    };
+                    if (AUTO_SUSTAIN && SUSTAIN_MS > 0) {
+                        if (sustainTO[midiNote]) { clearTimeout(sustainTO[midiNote]); }
+                        sustainTO[midiNote] = setTimeout(sendOff, Math.max(0, SUSTAIN_MS|0));
+                    } else {
+                        sendOff();
+                    }
+                }            
+
+            }                  
+
+            window.onload = function ()
+            {
+                MIDI.loadPlugin(function ()
+                {
+                    MIDI.Player.timeWarp = 1.0;
+                    // Sync playback sustain with keyboard sustain settings
+                    if (MIDI && MIDI.Player) {
+                        MIDI.Player.autoSustainPlayback = !!AUTO_SUSTAIN;
+                        MIDI.Player.sustainMsPlayback = Math.max(0, SUSTAIN_MS|0);
+                    }
+                    // Populate song list from midi/index.json (supports array of strings or array of {label,file})
+                    var sel = document.getElementById('songSelect');
+                    fetch('midi/index.json')
+                        .then(function(r){ return r.json(); })
+                        .then(function(data){
+                            var items = Array.isArray(data) ? data : (data && data.songs) ? data.songs : [];
+                            // Normalize to {label, file}
+                            var pairs = items.map(function(it){
+                                if (typeof it === 'string') {
+                                    return {
+                                        label: it.replace(/^baihat\//,'').replace(/\.mid$/i,''),
+                                        file: it
+                                    };
+                                }
+                                return { label: it.label || it.file, file: it.file || it };
+                            });
+                            // Clear and populate select
+                            while (sel.firstChild) sel.removeChild(sel.firstChild);
+                            pairs.forEach(function(p){
+                                var opt = document.createElement('option');
+                                opt.value = p.file;
+                                opt.textContent = p.label;
+                                sel.appendChild(opt);
+                            });
+                            // Default selection
+                            if (controls.song) { sel.value = controls.song; }
+                            if (!sel.value && sel.options.length) { sel.selectedIndex = 0; controls.song = sel.value; }
+                            if (controls.song) { MIDI.Player.loadFile('midi/' + controls.song); }
+                        })
+                        .catch(function(){
+                            // Fallback: load current default if available
+                            if (controls.song) { MIDI.Player.loadFile('midi/' + controls.song); }
+                        });
+
+                    // Listeners
+                    MIDI.Player.addListener(function(data){
+                        var pianoKey = data.note - MIDI.pianoKeyOffset - 3;
+                        if (data.message === 144) {
+                            key_status("_" + pianoKey, keyState.note_on);
+                        } else {
+                            key_status("_" + pianoKey, keyState.note_off);
+                        }
+                    });
+
+                    // Events: song change
+                    sel.addEventListener('change', function(){
+                        var value = sel.value;
+                        controls.song = value;
+                        MIDI.Player.stop();
+                        MIDI.Player.loadFile("midi/" + value, MIDI.Player.start);
+                        isPlaying = true; setPlayButtonUI(true);
+                    });
+
+                    // Events: play/stop
+                    var btnPlay = document.getElementById('btnPlay');
+                    var btnStop = document.getElementById('btnStop');
+                    var btnCollapse = document.getElementById('btnCollapse');
+                    var controlBar = document.getElementById('controlBar');
+                    var timeSeek = document.getElementById('timeSeek');
+                    var timeCurrent = document.getElementById('timeCurrent');
+                    var timeTotal = document.getElementById('timeTotal');
+
+                    var isPlaying = false;
+                    var setPlayButtonUI = function(playing){
+                        if (playing) { btnPlay.textContent = 'Tạm dừng'; btnPlay.setAttribute('aria-label','Tạm dừng'); }
+                        else { btnPlay.textContent = 'Phát'; btnPlay.setAttribute('aria-label','Phát'); }
+                    };
+                    setPlayButtonUI(false);
+
+                    btnPlay.addEventListener('click', function(){
+                        if (!isPlaying) { MIDI.Player.resume(); isPlaying = true; setPlayButtonUI(true); }
+                        else { if (MIDI.Player.pause) { MIDI.Player.pause(); } else { MIDI.Player.stop(); } isPlaying = false; setPlayButtonUI(false); }
+                    });
+                    btnStop.addEventListener('click', function(){ MIDI.Player.stop(); isPlaying = false; setPlayButtonUI(false); });
+
+                    // Collapse toggle
+                    btnCollapse.addEventListener('click', function(){
+                        var collapsed = controlBar.classList.toggle('collapsed');
+                        // Update accessibility label only; icon rotates via CSS
+                        btnCollapse.setAttribute('aria-label', collapsed ? 'Mở rộng' : 'Thu gọn');
+                    });
+
+                    // Events: color
+                    var colorPicker = document.getElementById('colorPicker');
+                    // Initialize color from controls.noteOnColor
+                    var toHex = function(v){ var s = Math.round(v).toString(16).padStart(2,'0'); return s; };
+                    colorPicker.value = '#' + toHex(controls.noteOnColor[0]) + toHex(controls.noteOnColor[1]) + toHex(controls.noteOnColor[2]);
+                    colorPicker.addEventListener('input', function(){
+                        var hex = colorPicker.value.replace('#','');
+                        controls.noteOnColor = [ parseInt(hex.substring(0,2),16), parseInt(hex.substring(2,4),16), parseInt(hex.substring(4,6),16), 1.0 ];
+                        noteOnColor = new THREE.Color().setRGB(controls.noteOnColor[0]/256.0, controls.noteOnColor[1]/256.0, controls.noteOnColor[2]/256.0);
+                    });
+
+                    // Events: octave (select)
+                    var octaveSelect = document.getElementById('octaveSelect');
+                    octaveSelect.value = String(controls.octave);
+                    octaveSelect.addEventListener('change', function(){
+                        controls.octave = parseInt(octaveSelect.value, 10);
+                        // release currently pressed keys when octave changes
+                        for (keyCode in keys_down) {
+                            var note = keyCode_to_note(keyCode);
+                            key_status(note, keyState.note_off);
+                        }
+                    });
+
+                    // Close loader
+                    MIDI.loader.stop();
+
+                    // ============================
+                    // Timeline / Seek integration
+                    // ============================
+                    function formatTime(sec){
+                        sec = Math.max(0, sec|0);
+                        var m = Math.floor(sec/60);
+                        var s = sec % 60;
+                        return m + ':' + (s<10?('0'+s):s);
+                    }
+
+                    var isSeeking = false;
+                    // Update UI periodically using Player animation callback
+                    MIDI.Player.setAnimation({
+                        interval: 80,
+                        callback: function(meta){
+                            // meta.now, meta.end are in seconds
+                            // set max once available
+                            if (meta.end && timeSeek.max != String(meta.end)) {
+                                timeSeek.max = meta.end;
+                                timeTotal.textContent = formatTime(Math.round(meta.end));
+                            }
+                            if (!isSeeking) {
+                                timeSeek.value = meta.now;
+                                timeCurrent.textContent = formatTime(Math.round(meta.now));
+                            }
+                        }
+                    });
+
+                    // When song loads, ensure duration is shown
+                    if (MIDI.Player && MIDI.Player.endTime) {
+                        var endSec = (MIDI.Player.endTime||0)/1000;
+                        timeSeek.max = endSec;
+                        timeTotal.textContent = formatTime(Math.round(endSec));
+                    }
+
+                    // Seeking handlers (mouse + touch)
+                    var applySeek = function(valueSec){
+                        var ms = Math.max(0, valueSec*1000);
+                        MIDI.Player.restart = ms;
+                        MIDI.Player.currentTime = ms;
+                        if (isPlaying) {
+                            MIDI.Player.resume();
+                        }
+                    };
+                    var updatePreview = function(valueSec){
+                        timeCurrent.textContent = formatTime(Math.round(valueSec));
+                    };
+
+                    ['input', 'change'].forEach(function(evt){
+                        timeSeek.addEventListener(evt, function(){
+                            var v = parseFloat(timeSeek.value)||0;
+                            updatePreview(v);
+                            if (evt === 'change') { applySeek(v); }
+                        });
+                    });
+                    // Pointer/touch guard to pause UI sync while dragging
+                    ['pointerdown','touchstart','mousedown'].forEach(function(evt){
+                        timeSeek.addEventListener(evt, function(){ isSeeking = true; });
+                    });
+                    ['pointerup','touchend','mouseup','mouseleave'].forEach(function(evt){
+                        timeSeek.addEventListener(evt, function(){ isSeeking = false; });
+                    });
+
+                    // Reset timeline on stop
+                    btnStop.addEventListener('click', function(){
+                        timeSeek.value = 0;
+                        timeCurrent.textContent = '0:00';
+                    });
+                });
+            };
+
+            window.addEventListener( 'resize', on_window_resize, false );
+
+        </script>
+
+        <!-- Footer Chill -->
+        <footer id="footerChill" role="contentinfo" aria-label="VÙNG ĐẤT CHILL">
+            <div>
+                <div class="title">VÙNG ĐẤT CHILL 2025</div>
+                <div class="sub">by <strong>Hugnw</strong> · Chúc bạn có những phút giây thư giãn cùng Piano 3D.</div>
+            </div>
+            <a id="btnBackParent" href="../" aria-label="Quay về thư mục mẹ">← Quay về</a>
+        </footer>
+
+        <script>
+        // Mobile-friendly back behavior: prefer history.back()
+        (function(){
+            var back = document.getElementById('btnBackParent');
+            if (!back) return;
+            back.addEventListener('click', function(e){
+                if (window.history && window.history.length > 1) {
+                    e.preventDefault();
+                    window.history.back();
+                }
+            }, { passive: false });
+        })();
+        </script>
+
+    <script src="https://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-302418-4";
+    urchinTracker();
+    </script>
+
+    <script type="text/javascript">
+    var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+    document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+    </script>
+    <script type="text/javascript">
+    try
+    {
+      var pageTracker = _gat._getTracker("UA-302418-4");
+      pageTracker._trackPageview();
+    }
+    catch(err)
+    {
+    }
+    </script>
+
+    
+    </body>
+</html>
